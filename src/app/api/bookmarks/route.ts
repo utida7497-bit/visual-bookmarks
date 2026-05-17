@@ -41,42 +41,50 @@ async function fetchMetadata(url: string) {
 }
 
 export async function GET(request: Request) {
-  await initDB();
-  const { searchParams } = new URL(request.url);
-  const groupId = searchParams.get("groupId");
+  try {
+    await initDB();
+    const { searchParams } = new URL(request.url);
+    const groupId = searchParams.get("groupId");
 
-  let result;
-  if (groupId) {
-    result = await db.query(
-      "SELECT * FROM bookmarks WHERE group_id = ? ORDER BY created_at DESC",
-      [Number(groupId)]
-    );
-  } else {
-    result = await db.query("SELECT * FROM bookmarks ORDER BY created_at DESC");
+    let result;
+    if (groupId) {
+      result = await db.query(
+        "SELECT * FROM bookmarks WHERE group_id = ? ORDER BY created_at DESC",
+        [Number(groupId)]
+      );
+    } else {
+      result = await db.query("SELECT * FROM bookmarks ORDER BY created_at DESC");
+    }
+    
+    const bookmarks = Array.isArray(result) ? result : (result as any).rows;
+    return NextResponse.json(bookmarks);
+  } catch (err: any) {
+    return NextResponse.json({ error: "GET Error", details: err.message, stack: err.stack, env: Object.keys(process.env).filter(k => k.includes('URL') || k.includes('POSTGRES') || k.includes('DATABASE')) }, { status: 500 });
   }
-  
-  const bookmarks = Array.isArray(result) ? result : (result as any).rows;
-  return NextResponse.json(bookmarks);
 }
 
 export async function POST(request: Request) {
-  await initDB();
-  const body = await request.json();
-  const { url, groupId } = body;
+  try {
+    await initDB();
+    const body = await request.json();
+    const { url, groupId } = body;
 
-  if (!url || !url.trim()) {
-    return NextResponse.json({ error: "URLを入力してください" }, { status: 400 });
+    if (!url || !url.trim()) {
+      return NextResponse.json({ error: "URLを入力してください" }, { status: 400 });
+    }
+
+    const { title, imageUrl, summary } = await fetchMetadata(url);
+
+    await db.execute(`
+      INSERT INTO bookmarks (group_id, url, title, image_url, summary, memo)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, [groupId || null, url, title, imageUrl, summary, ""]);
+
+    // 最新のデータを取得して返す
+    const bookmark = await db.get("SELECT * FROM bookmarks WHERE url = ? ORDER BY created_at DESC LIMIT 1", [url]);
+
+    return NextResponse.json(bookmark, { status: 201 });
+  } catch (err: any) {
+    return NextResponse.json({ error: "POST Error", details: err.message, stack: err.stack }, { status: 500 });
   }
-
-  const { title, imageUrl, summary } = await fetchMetadata(url);
-
-  await db.execute(`
-    INSERT INTO bookmarks (group_id, url, title, image_url, summary, memo)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `, [groupId || null, url, title, imageUrl, summary, ""]);
-
-  // 最新のデータを取得して返す
-  const bookmark = await db.get("SELECT * FROM bookmarks WHERE url = ? ORDER BY created_at DESC LIMIT 1", [url]);
-
-  return NextResponse.json(bookmark, { status: 201 });
 }
