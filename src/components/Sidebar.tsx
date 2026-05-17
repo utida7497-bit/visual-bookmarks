@@ -130,8 +130,9 @@ export default function Sidebar({ onSelectGroup, selectedGroupId, onGroupsChange
       </div>
 
       {sidebarError && (
-        <div style={{ padding: "10px", margin: "0 20px 20px", background: "rgba(255,0,0,0.1)", border: "1px solid red", borderRadius: "8px", color: "white", fontSize: "0.8rem", wordBreak: "break-all" }}>
-          ⚠️ DB Error
+        <div style={{ padding: "10px", margin: "0 20px 20px", background: "rgba(255,0,0,0.1)", border: "1px solid red", borderRadius: "8px", color: "white", fontSize: "0.7rem", wordBreak: "break-all", whiteSpace: "pre-wrap" }}>
+          ⚠️ DB Error<br/>
+          {JSON.stringify(sidebarError, null, 2)}
         </div>
       )}
 
