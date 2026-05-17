@@ -24,13 +24,24 @@ export default function BookmarkGrid({ selectedGroupId }: BookmarkGridProps) {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [errorObj, setErrorObj] = useState<any>(null);
 
   const fetchBookmarks = useCallback(async () => {
     if (selectedGroupId === null) return;
     setLoading(true);
-    const res = await fetch(`/api/bookmarks?groupId=${selectedGroupId}`);
-    const data = await res.json();
-    setBookmarks(data);
+    setErrorObj(null);
+    try {
+      const res = await fetch(`/api/bookmarks?groupId=${selectedGroupId}`);
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setErrorObj(data);
+        setBookmarks([]);
+      } else {
+        setBookmarks(Array.isArray(data) ? data : []);
+      }
+    } catch (err: any) {
+      setErrorObj({ error: "Fetch Exception", details: err.message });
+    }
     setLoading(false);
   }, [selectedGroupId]);
 
@@ -93,7 +104,14 @@ export default function BookmarkGrid({ selectedGroupId }: BookmarkGridProps) {
         </div>
       </div>
 
-      {loading ? (
+      {errorObj ? (
+        <div style={{ padding: "20px", background: "rgba(255,0,0,0.1)", border: "1px solid red", borderRadius: "8px", color: "white" }}>
+          <h3>データベースエラーが発生しました</h3>
+          <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-all", fontSize: "12px" }}>
+            {JSON.stringify(errorObj, null, 2)}
+          </pre>
+        </div>
+      ) : loading ? (
         <div style={{ textAlign: "center", color: "#94a3b8", padding: "60px" }}>
           <div className="loading-spinner" />
           <p>蔵書を検索中...</p>

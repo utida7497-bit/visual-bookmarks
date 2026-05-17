@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 
 interface Group {
   id: number;
@@ -17,270 +17,233 @@ export default function Sidebar({ onSelectGroup, selectedGroupId, onGroupsChange
   const [groups, setGroups] = useState<Group[]>([]);
   const [newGroupName, setNewGroupName] = useState("");
   const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editingName, setEditingName] = useState("");
-  const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
+  const [editGroupName, setEditGroupName] = useState("");
+  const [sidebarError, setSidebarError] = useState<any>(null);
 
-  const fetchGroups = useCallback(async () => {
-    const res = await fetch("/api/groups");
-    const data = await res.json();
-    setGroups(data);
-    if (selectedGroupId === null && data.length > 0) {
-      onSelectGroup(data[0].id);
+  const fetchGroups = async () => {
+    try {
+      const res = await fetch("/api/groups");
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setSidebarError(data);
+        setGroups([]);
+      } else {
+        setGroups(Array.isArray(data) ? data : []);
+      }
+    } catch (err: any) {
+      setSidebarError({ error: "Fetch Exception", details: err.message });
     }
-  }, [selectedGroupId, onSelectGroup]);
+  };
 
   useEffect(() => {
     fetchGroups();
   }, []);
 
-  const handleAddGroup = async () => {
+  useEffect(() => {
+    if (groups.length > 0 && selectedGroupId === null) {
+      onSelectGroup(groups[0].id);
+    }
+  }, [groups, selectedGroupId, onSelectGroup]);
+
+  const handleAddGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!newGroupName.trim()) return;
-    await fetch("/api/groups", {
+
+    const res = await fetch("/api/groups", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: newGroupName }),
     });
-    setNewGroupName("");
-    setIsAdding(false);
-    fetchGroups();
-    onGroupsChange?.();
-  };
 
-  const handleStartEdit = (group: Group) => {
-    setEditingId(group.id);
-    setEditingName(group.name);
-  };
-
-  const handleRenameGroup = async (id: number) => {
-    if (!editingName.trim()) {
-      setEditingId(null);
-      return;
+    if (res.ok) {
+      setNewGroupName("");
+      setIsAdding(false);
+      await fetchGroups();
+      if (onGroupsChange) onGroupsChange();
+    } else {
+      const data = await res.json();
+      alert(data.error || "エラーが発生しました");
     }
-    await fetch(`/api/groups/${id}`, {
+  };
+
+  const handleEditGroup = async (e: React.FormEvent, id: number) => {
+    e.preventDefault();
+    if (!editGroupName.trim()) return;
+
+    const res = await fetch(`/api/groups/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editingName }),
+      body: JSON.stringify({ name: editGroupName }),
     });
-    setEditingId(null);
-    fetchGroups();
+
+    if (res.ok) {
+      setEditingGroupId(null);
+      await fetchGroups();
+      if (onGroupsChange) onGroupsChange();
+    } else {
+      const data = await res.json();
+      alert(data.error || "エラーが発生しました");
+    }
   };
 
   const handleDeleteGroup = async (id: number) => {
-    if (!confirm("この棚を削除しますか？（蔵書は未分類に移動されます）")) return;
-    await fetch(`/api/groups/${id}`, { method: "DELETE" });
-    if (selectedGroupId === id) {
-      onSelectGroup(groups.find((g) => g.id !== id)?.id ?? null);
+    if (!confirm("この本棚を削除しますか？\n※中の蔵書もすべて削除されます（未実装）")) return;
+
+    const res = await fetch(`/api/groups/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      if (selectedGroupId === id) {
+        onSelectGroup(groups.find(g => g.id !== id)?.id || null);
+      }
+      await fetchGroups();
+      if (onGroupsChange) onGroupsChange();
     }
-    fetchGroups();
   };
 
   return (
-    <aside className="glass-panel" style={{
-      width: "260px",
-      minHeight: "calc(100vh - 40px)",
-      margin: "20px",
-      padding: "30px 16px",
+    <div className="glass-panel" style={{
+      width: "280px",
       display: "flex",
       flexDirection: "column",
-      gap: "12px",
-      borderRadius: "24px",
-      flexShrink: 0,
+      borderRight: "1px solid rgba(255, 255, 255, 0.1)",
+      height: "100vh",
+      position: "sticky",
+      top: 0,
+      padding: "20px 0"
     }}>
-      <h2 style={{
-        fontFamily: "'Playfair Display', serif",
-        color: "var(--accent-color)",
-        fontSize: "1.1rem",
-        letterSpacing: "3px",
-        textAlign: "center",
-        marginBottom: "16px",
-        paddingBottom: "16px",
-        borderBottom: "1px solid var(--border-color)"
-      }}>
-        📚 ARCHIVES
-      </h2>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1 }}>
-        {groups.map((group) => (
-          <div
-            key={group.id}
-            onMouseEnter={() => setHoveredId(group.id)}
-            onMouseLeave={() => setHoveredId(null)}
-            style={{ position: "relative" }}
-          >
-            {editingId === group.id ? (
-              /* 編集モード */
-              <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-                <input
-                  type="text"
-                  value={editingName}
-                  onChange={(e) => setEditingName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleRenameGroup(group.id);
-                    if (e.key === "Escape") setEditingId(null);
-                  }}
-                  autoFocus
-                  style={{
-                    flex: 1,
-                    padding: "8px 10px",
-                    background: "rgba(255,255,255,0.1)",
-                    border: "1px solid #fbbf24",
-                    borderRadius: "8px",
-                    color: "#f8fafc",
-                    fontSize: "0.85rem",
-                    fontFamily: "inherit",
-                    outline: "none",
-                  }}
-                />
-                <button
-                  onClick={() => handleRenameGroup(group.id)}
-                  title="保存"
-                  style={{
-                    padding: "6px 8px",
-                    background: "#fbbf24",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "0.75rem",
-                    fontWeight: "700",
-                    color: "#1a1a1a",
-                  }}
-                >✓</button>
-                <button
-                  onClick={() => setEditingId(null)}
-                  title="キャンセル"
-                  style={{
-                    padding: "6px 8px",
-                    background: "rgba(255,255,255,0.08)",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "0.75rem",
-                    color: "#94a3b8",
-                  }}
-                >✕</button>
-              </div>
-            ) : (
-              /* 通常モード */
-              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                <button
-                  onClick={() => onSelectGroup(group.id)}
-                  style={{
-                    flex: 1,
-                    padding: "11px 14px",
-                    textAlign: "left",
-                    background: selectedGroupId === group.id
-                      ? "linear-gradient(135deg, #fbbf24, #f59e0b)"
-                      : "transparent",
-                    color: selectedGroupId === group.id ? "#1a1a1a" : "#f8fafc",
-                    border: "none",
-                    borderRadius: "10px",
-                    cursor: "pointer",
-                    fontSize: "0.88rem",
-                    fontWeight: selectedGroupId === group.id ? "600" : "400",
-                    transition: "all 0.25s ease",
-                    fontFamily: "inherit",
-                    boxShadow: selectedGroupId === group.id
-                      ? "0 4px 14px rgba(251, 191, 36, 0.3)"
-                      : "none",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {group.name}
-                </button>
-
-                {/* ホバー時に表示される編集・削除ボタン */}
-                {hoveredId === group.id && (
-                  <div style={{ display: "flex", gap: "2px", flexShrink: 0 }}>
-                    <button
-                      onClick={() => handleStartEdit(group)}
-                      title="名前を変更"
-                      style={{
-                        padding: "6px 7px",
-                        background: "rgba(255,255,255,0.1)",
-                        border: "none",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                        fontSize: "0.75rem",
-                        color: "#94a3b8",
-                        transition: "all 0.15s",
-                      }}
-                    >✎</button>
-                    {group.name !== "未分類" && (
-                      <button
-                        onClick={() => handleDeleteGroup(group.id)}
-                        title="棚を削除"
-                        style={{
-                          padding: "6px 7px",
-                          background: "rgba(255,255,255,0.1)",
-                          border: "none",
-                          borderRadius: "6px",
-                          cursor: "pointer",
-                          fontSize: "0.75rem",
-                          color: "#94a3b8",
-                          transition: "all 0.15s",
-                        }}
-                        onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#f87171")}
-                        onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#94a3b8")}
-                      >🗑</button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
+      <div style={{ padding: "0 20px", marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h2 style={{ fontSize: "1.2rem", color: "var(--text-muted)", fontWeight: "600", letterSpacing: "2px" }}>
+          BOOKSHELVES
+        </h2>
+        <button 
+          onClick={() => setIsAdding(!isAdding)}
+          style={{
+            background: "none", border: "none", color: "var(--accent-color)", 
+            cursor: "pointer", fontSize: "1.5rem", padding: "0 5px", transition: "transform 0.2s"
+          }}
+          title="新しい棚を追加"
+          onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.2)"}
+          onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+        >
+          +
+        </button>
       </div>
 
-      {/* 新しい棚の追加 */}
-      {isAdding ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      {sidebarError && (
+        <div style={{ padding: "10px", margin: "0 20px 20px", background: "rgba(255,0,0,0.1)", border: "1px solid red", borderRadius: "8px", color: "white", fontSize: "0.8rem", wordBreak: "break-all" }}>
+          ⚠️ DB Error
+        </div>
+      )}
+
+      {isAdding && (
+        <form onSubmit={handleAddGroup} style={{ padding: "0 20px", marginBottom: "15px" }}>
           <input
             type="text"
             value={newGroupName}
             onChange={(e) => setNewGroupName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAddGroup()}
             placeholder="棚の名前..."
             autoFocus
             style={{
-              padding: "8px 12px",
-              background: "rgba(255,255,255,0.08)",
-              border: "1px solid var(--border-color)",
+              width: "100%",
+              padding: "10px",
+              background: "rgba(255, 255, 255, 0.05)",
+              border: "1px solid var(--accent-color)",
               borderRadius: "8px",
-              color: "#f8fafc",
-              fontSize: "0.85rem",
-              fontFamily: "inherit",
-              outline: "none",
+              color: "var(--text-main)",
+              outline: "none"
             }}
           />
-          <div style={{ display: "flex", gap: "6px" }}>
-            <button onClick={handleAddGroup} style={{
-              flex: 1, padding: "7px", background: "#fbbf24", border: "none",
-              borderRadius: "8px", cursor: "pointer", fontSize: "0.8rem", fontWeight: "600", color: "#1a1a1a"
-            }}>追加</button>
-            <button onClick={() => setIsAdding(false)} style={{
-              flex: 1, padding: "7px", background: "rgba(255,255,255,0.08)", border: "none",
-              borderRadius: "8px", cursor: "pointer", fontSize: "0.8rem", color: "#94a3b8"
-            }}>キャンセル</button>
-          </div>
-        </div>
-      ) : (
-        <button onClick={() => setIsAdding(true)} style={{
-          padding: "10px",
-          background: "rgba(255,255,255,0.05)",
-          border: "1px dashed rgba(255,255,255,0.2)",
-          color: "#94a3b8",
-          borderRadius: "10px",
-          cursor: "pointer",
-          fontSize: "0.8rem",
-          fontFamily: "inherit",
-          transition: "all 0.2s ease",
-        }}>
-          + 新しい棚を追加
-        </button>
+        </form>
       )}
-    </aside>
+
+      <ul style={{ listStyle: "none", padding: 0, margin: 0, flex: 1, overflowY: "auto" }}>
+        {groups.map((group) => (
+          <li key={group.id} className="group-item" style={{ position: "relative" }}>
+            {editingGroupId === group.id ? (
+              <form 
+                onSubmit={(e) => handleEditGroup(e, group.id)}
+                style={{ padding: "10px 20px" }}
+              >
+                <input
+                  type="text"
+                  value={editGroupName}
+                  onChange={(e) => setEditGroupName(e.target.value)}
+                  autoFocus
+                  onBlur={() => setEditingGroupId(null)}
+                  style={{
+                    width: "100%",
+                    padding: "8px",
+                    background: "rgba(255, 255, 255, 0.1)",
+                    border: "1px solid var(--accent-color)",
+                    borderRadius: "6px",
+                    color: "white"
+                  }}
+                />
+              </form>
+            ) : (
+              <div 
+                style={{
+                  padding: "15px 20px",
+                  cursor: "pointer",
+                  background: selectedGroupId === group.id ? "rgba(255, 255, 255, 0.1)" : "transparent",
+                  borderLeft: selectedGroupId === group.id ? "4px solid var(--accent-color)" : "4px solid transparent",
+                  transition: "all 0.2s ease",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center"
+                }}
+                onClick={() => onSelectGroup(group.id)}
+              >
+                <span style={{ 
+                  fontWeight: selectedGroupId === group.id ? "600" : "400",
+                  color: selectedGroupId === group.id ? "var(--text-main)" : "var(--text-muted)"
+                }}>
+                  {group.name}
+                </span>
+                
+                {/* ホバー時に表示されるアクションボタン */}
+                <div className="group-actions" style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditGroupName(group.name);
+                      setEditingGroupId(group.id);
+                    }}
+                    style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: "0.9rem", color: "var(--text-muted)" }}
+                    title="名前を変更"
+                  >
+                    ✏️
+                  </button>
+                  {group.name !== '未分類' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteGroup(group.id);
+                      }}
+                      style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: "0.9rem", color: "var(--text-muted)" }}
+                      title="削除"
+                    >
+                      🗑
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+      <style>{`
+        .group-item .group-actions {
+          opacity: 0;
+          transition: opacity 0.2s;
+        }
+        .group-item:hover .group-actions {
+          opacity: 1;
+        }
+        .group-item:hover > div {
+          background: rgba(255, 255, 255, 0.05);
+        }
+      `}</style>
+    </div>
   );
 }
