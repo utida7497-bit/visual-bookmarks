@@ -1,4 +1,4 @@
-import { createClient } from '@vercel/postgres';
+import { createPool } from '@vercel/postgres';
 import path from 'path';
 
 // クラウド環境（Vercel）かどうかを判定 (Neon対応)
@@ -6,6 +6,14 @@ const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
 const isCloud = connectionString !== undefined;
 
 let sqliteDB: any;
+let pgPool: any;
+
+if (isCloud) {
+  // クラウドの場合は明示的に接続URLを指定してプールを作成
+  pgPool = createPool({
+    connectionString: connectionString
+  });
+}
 
 // クラウド環境では better-sqlite3 をインポートしないようにする
 async function getSQLite() {
@@ -20,14 +28,8 @@ async function getSQLite() {
 export const db = {
   async query(query: string, params: any[] = []) {
     if (isCloud) {
-      const client = createClient({ connectionString });
-      await client.connect();
-      try {
-        const { rows } = await client.query(query.replace(/\?/g, (_, i) => `$${i + 1}`), params);
-        return rows;
-      } finally {
-        await client.end();
-      }
+      const { rows } = await pgPool.query(query.replace(/\?/g, (_, i) => `$${i + 1}`), params);
+      return rows;
     } else {
       const sdb = await getSQLite();
       return sdb.prepare(query).all(...params);
@@ -36,13 +38,7 @@ export const db = {
   
   async execute(query: string, params: any[] = []) {
     if (isCloud) {
-      const client = createClient({ connectionString });
-      await client.connect();
-      try {
-        return await client.query(query.replace(/\?/g, (_, i) => `$${i + 1}`), params);
-      } finally {
-        await client.end();
-      }
+      return await pgPool.query(query.replace(/\?/g, (_, i) => `$${i + 1}`), params);
     } else {
       const sdb = await getSQLite();
       return sdb.prepare(query).run(...params);
@@ -51,14 +47,8 @@ export const db = {
 
   async get(query: string, params: any[] = []) {
     if (isCloud) {
-      const client = createClient({ connectionString });
-      await client.connect();
-      try {
-        const { rows } = await client.query(query.replace(/\?/g, (_, i) => `$${i + 1}`), params);
-        return rows[0];
-      } finally {
-        await client.end();
-      }
+      const { rows } = await pgPool.query(query.replace(/\?/g, (_, i) => `$${i + 1}`), params);
+      return rows[0];
     } else {
       const sdb = await getSQLite();
       return sdb.prepare(query).get(...params);
@@ -88,15 +78,9 @@ export async function initDB() {
   `;
 
   if (isCloud) {
-    const client = createClient({ connectionString });
-    await client.connect();
-    try {
-      await client.query(createGroupsTable);
-      await client.query(createBookmarksTable);
-      await client.query("INSERT INTO groups (name) VALUES ('未分類') ON CONFLICT (name) DO NOTHING");
-    } finally {
-      await client.end();
-    }
+    await pgPool.query(createGroupsTable);
+    await pgPool.query(createBookmarksTable);
+    await pgPool.query("INSERT INTO groups (name) VALUES ('未分類') ON CONFLICT (name) DO NOTHING");
   } else {
     const sdb = await getSQLite();
     sdb.exec(`
