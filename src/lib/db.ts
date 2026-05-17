@@ -1,12 +1,21 @@
-import { sql } from '@vercel/postgres';
+import { createPool } from '@vercel/postgres';
 import path from 'path';
 
-// クラウド環境（Vercel）かどうかを判定
-const isCloud = process.env.POSTGRES_URL !== undefined;
+// クラウド環境（Vercel）かどうかを判定 (Neon対応)
+const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+const isCloud = connectionString !== undefined;
 
 let sqliteDB: any;
+let pgPool: any;
 
-// 修正：クラウド環境では better-sqlite3 をインポートしないようにする
+if (isCloud) {
+  // クラウドの場合は明示的に接続URLを指定してプールを作成
+  pgPool = createPool({
+    connectionString: connectionString
+  });
+}
+
+// クラウド環境では better-sqlite3 をインポートしないようにする
 async function getSQLite() {
   if (isCloud) return null;
   if (sqliteDB) return sqliteDB;
@@ -20,7 +29,8 @@ export const db = {
   async query(query: string, params: any[] = []) {
     try {
       if (isCloud) {
-        const { rows } = await sql.query(query.replace(/\?/g, (_, i) => `$${i + 1}`), params);
+        // Postgres 用のクエリに変換 (?, ? を $1, $2 に)
+        const { rows } = await pgPool.query(query.replace(/\?/g, (_, i) => `$${i + 1}`), params);
         return rows;
       } else {
         const sdb = await getSQLite();
@@ -35,7 +45,7 @@ export const db = {
   async execute(query: string, params: any[] = []) {
     try {
       if (isCloud) {
-        return await sql.query(query.replace(/\?/g, (_, i) => `$${i + 1}`), params);
+        return await pgPool.query(query.replace(/\?/g, (_, i) => `$${i + 1}`), params);
       } else {
         const sdb = await getSQLite();
         return sdb.prepare(query).run(...params);
@@ -49,7 +59,7 @@ export const db = {
   async get(query: string, params: any[] = []) {
     try {
       if (isCloud) {
-        const { rows } = await sql.query(query.replace(/\?/g, (_, i) => `$${i + 1}`), params);
+        const { rows } = await pgPool.query(query.replace(/\?/g, (_, i) => `$${i + 1}`), params);
         return rows[0];
       } else {
         const sdb = await getSQLite();
@@ -85,9 +95,9 @@ export async function initDB() {
 
   try {
     if (isCloud) {
-      await sql.query(createGroupsTable);
-      await sql.query(createBookmarksTable);
-      await sql.query("INSERT INTO groups (name) VALUES ('未分類') ON CONFLICT (name) DO NOTHING");
+      await pgPool.query(createGroupsTable);
+      await pgPool.query(createBookmarksTable);
+      await pgPool.query("INSERT INTO groups (name) VALUES ('未分類') ON CONFLICT (name) DO NOTHING");
     } else {
       const sdb = await getSQLite();
       sdb.exec(`
