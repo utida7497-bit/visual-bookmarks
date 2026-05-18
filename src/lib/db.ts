@@ -1,19 +1,16 @@
-import { createPool } from '@vercel/postgres';
+import { sql as vercelSql } from '@vercel/postgres';
 import path from 'path';
 
 // クラウド環境（Vercel）かどうかを判定 (Neon対応)
-const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
-const isCloud = connectionString !== undefined;
+if (!process.env.POSTGRES_URL && process.env.DATABASE_URL) {
+  process.env.POSTGRES_URL = process.env.DATABASE_URL;
+}
+const isCloud = process.env.POSTGRES_URL !== undefined;
+
+export { isCloud };
+export const sql = vercelSql;
 
 let sqliteDB: any;
-let pgPool: any;
-
-if (isCloud) {
-  // クラウドの場合は明示的に接続URLを指定してプールを作成
-  pgPool = createPool({
-    connectionString: connectionString
-  });
-}
 
 // クラウド環境では better-sqlite3 をインポートしないようにする
 async function getSQLite() {
@@ -27,32 +24,18 @@ async function getSQLite() {
 
 export const db = {
   async query(query: string, params: any[] = []) {
-    if (isCloud) {
-      const { rows } = await pgPool.query(query.replace(/\?/g, (_, i) => `$${i + 1}`), params);
-      return rows;
-    } else {
-      const sdb = await getSQLite();
-      return sdb.prepare(query).all(...params);
-    }
+    const sdb = await getSQLite();
+    return sdb.prepare(query).all(...params);
   },
   
   async execute(query: string, params: any[] = []) {
-    if (isCloud) {
-      return await pgPool.query(query.replace(/\?/g, (_, i) => `$${i + 1}`), params);
-    } else {
-      const sdb = await getSQLite();
-      return sdb.prepare(query).run(...params);
-    }
+    const sdb = await getSQLite();
+    return sdb.prepare(query).run(...params);
   },
 
   async get(query: string, params: any[] = []) {
-    if (isCloud) {
-      const { rows } = await pgPool.query(query.replace(/\?/g, (_, i) => `$${i + 1}`), params);
-      return rows[0];
-    } else {
-      const sdb = await getSQLite();
-      return sdb.prepare(query).get(...params);
-    }
+    const sdb = await getSQLite();
+    return sdb.prepare(query).get(...params);
   }
 };
 
@@ -78,9 +61,10 @@ export async function initDB() {
   `;
 
   if (isCloud) {
-    await pgPool.query(createGroupsTable);
-    await pgPool.query(createBookmarksTable);
-    await pgPool.query("INSERT INTO groups (name) VALUES ('未分類') ON CONFLICT (name) DO NOTHING");
+    // Vercel Postgres Native (sql tagged template)
+    await vercelSql.query(createGroupsTable);
+    await vercelSql.query(createBookmarksTable);
+    await vercelSql.query("INSERT INTO groups (name) VALUES ('未分類') ON CONFLICT (name) DO NOTHING");
   } else {
     const sdb = await getSQLite();
     sdb.exec(`

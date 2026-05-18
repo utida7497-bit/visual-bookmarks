@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import * as cheerio from "cheerio";
-import { db, initDB } from "@/lib/db";
+import { db, initDB, isCloud, sql } from "@/lib/db";
 
 // URLからOGPタイトル・画像を取得する
 async function fetchMetadata(url: string) {
@@ -46,18 +46,27 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const groupId = searchParams.get("groupId");
 
-    let result;
-    if (groupId) {
-      // 数値はパラメータ（$1）を使わず直接埋め込む（NumberでキャストするためSQLインジェクションは安全）
-      const numId = Number(groupId);
-      if (isNaN(numId)) throw new Error("Invalid groupId");
-      result = await db.query(`SELECT * FROM bookmarks WHERE group_id = ${numId} ORDER BY created_at DESC`);
+    if (isCloud) {
+      if (groupId) {
+        const numId = Number(groupId);
+        if (isNaN(numId)) throw new Error("Invalid groupId");
+        const { rows } = await sql`SELECT * FROM bookmarks WHERE group_id = ${numId} ORDER BY created_at DESC`;
+        return NextResponse.json(rows);
+      } else {
+        const { rows } = await sql`SELECT * FROM bookmarks ORDER BY created_at DESC`;
+        return NextResponse.json(rows);
+      }
     } else {
-      result = await db.query("SELECT * FROM bookmarks ORDER BY created_at DESC");
+      let result;
+      if (groupId) {
+        const numId = Number(groupId);
+        if (isNaN(numId)) throw new Error("Invalid groupId");
+        result = await db.query(`SELECT * FROM bookmarks WHERE group_id = ${numId} ORDER BY created_at DESC`);
+      } else {
+        result = await db.query("SELECT * FROM bookmarks ORDER BY created_at DESC");
+      }
+      return NextResponse.json(result);
     }
-    
-    const bookmarks = Array.isArray(result) ? result : (result as any).rows;
-    return NextResponse.json(bookmarks);
   } catch (err: any) {
     return NextResponse.json({ error: "GET Error", details: err.message, stack: err.stack }, { status: 500 });
   }
@@ -74,19 +83,23 @@ export async function POST(request: Request) {
     }
 
     const { title, imageUrl, summary } = await fetchMetadata(url);
-    const numId = groupId ? Number(groupId) : 'NULL';
+    const numId = groupId ? Number(groupId) : null;
 
-    // 整数（group_id）は直接埋め込み、文字列のみプレースホルダー（?）を使用する
-    // Vercel Postgresの型推論エラーを防ぐため、文字列も明示的に CAST(? AS TEXT) する
-    await db.execute(`
-      INSERT INTO bookmarks (group_id, url, title, image_url, summary, memo)
-      VALUES (${numId}, CAST(? AS TEXT), CAST(? AS TEXT), CAST(? AS TEXT), CAST(? AS TEXT), CAST(? AS TEXT))
-    `, [url, title, imageUrl, summary, ""]);
-
-    // 最新のデータを取得して返す
-    const bookmark = await db.get("SELECT * FROM bookmarks WHERE url = CAST(? AS TEXT) ORDER BY created_at DESC LIMIT 1", [url]);
-
-    return NextResponse.json(bookmark, { status: 201 });
+    if (isCloud) {
+      await sql`
+        INSERT INTO bookmarks (group_id, url, title, image_url, summary, memo)
+        VALUES (${numId}, ${url}, ${title}, ${imageUrl}, ${summary}, '')
+      `;
+      const { rows } = await sql`SELECT * FROM bookmarks WHERE url = ${url} ORDER BY created_at DESC LIMIT 1`;
+      return NextResponse.json(rows[0], { status: 201 });
+    } else {
+      await db.execute(`
+        INSERT INTO bookmarks (group_id, url, title, image_url, summary, memo)
+        VALUES (${numId !== null ? numId : 'NULL'}, ?, ?, ?, ?, '')
+      `, [url, title, imageUrl, summary]);
+      const bookmark = await db.get("SELECT * FROM bookmarks WHERE url = ? ORDER BY created_at DESC LIMIT 1", [url]);
+      return NextResponse.json(bookmark, { status: 201 });
+    }
   } catch (err: any) {
     return NextResponse.json({ error: "POST Error", details: err.message, stack: err.stack }, { status: 500 });
   }

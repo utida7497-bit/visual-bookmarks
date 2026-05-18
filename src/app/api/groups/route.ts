@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
-import { db, initDB } from "@/lib/db";
+import { db, initDB, isCloud, sql } from "@/lib/db";
 
 export async function GET() {
   try {
     await initDB();
-    const groups = await db.query("SELECT * FROM groups ORDER BY created_at ASC");
-    // Vercel Postgresの場合は rows プロパティにデータが入っている
-    return NextResponse.json(Array.isArray(groups) ? groups : (groups as any).rows);
+    if (isCloud) {
+      const { rows } = await sql`SELECT * FROM groups ORDER BY created_at ASC`;
+      return NextResponse.json(rows);
+    } else {
+      const groups = await db.query("SELECT * FROM groups ORDER BY created_at ASC");
+      return NextResponse.json(groups);
+    }
   } catch (err: any) {
     return NextResponse.json({ error: "GET Groups Error", details: err.message, stack: err.stack }, { status: 500 });
   }
@@ -22,11 +26,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "名前を入力してください" }, { status: 400 });
     }
     
+    const trimmedName = name.trim();
+
     try {
-      await db.execute("INSERT INTO groups (name) VALUES (CAST(? AS TEXT))", [name.trim()]);
-      // INSERT後のID取得
-      const newGroup = await db.get("SELECT * FROM groups WHERE name = CAST(? AS TEXT)", [name.trim()]);
-      return NextResponse.json(newGroup, { status: 201 });
+      if (isCloud) {
+        await sql`INSERT INTO groups (name) VALUES (${trimmedName})`;
+        const { rows } = await sql`SELECT * FROM groups WHERE name = ${trimmedName}`;
+        return NextResponse.json(rows[0], { status: 201 });
+      } else {
+        await db.execute("INSERT INTO groups (name) VALUES (?)", [trimmedName]);
+        const newGroup = await db.get("SELECT * FROM groups WHERE name = ?", [trimmedName]);
+        return NextResponse.json(newGroup, { status: 201 });
+      }
     } catch (err: any) {
       console.error(err);
       return NextResponse.json({ error: "すでに存在するグループ名です", details: err.message }, { status: 409 });
