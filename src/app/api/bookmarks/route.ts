@@ -77,13 +77,14 @@ export async function POST(request: Request) {
     const numId = groupId ? Number(groupId) : 'NULL';
 
     // 整数（group_id）は直接埋め込み、文字列のみプレースホルダー（?）を使用する
+    // Vercel Postgresの型推論エラーを防ぐため、文字列も明示的に CAST(? AS TEXT) する
     await db.execute(`
       INSERT INTO bookmarks (group_id, url, title, image_url, summary, memo)
-      VALUES (${numId}, ?, ?, ?, ?, ?)
+      VALUES (${numId}, CAST(? AS TEXT), CAST(? AS TEXT), CAST(? AS TEXT), CAST(? AS TEXT), CAST(? AS TEXT))
     `, [url, title, imageUrl, summary, ""]);
 
     // 最新のデータを取得して返す
-    const bookmark = await db.get("SELECT * FROM bookmarks WHERE url = ? ORDER BY created_at DESC LIMIT 1", [url]);
+    const bookmark = await db.get("SELECT * FROM bookmarks WHERE url = CAST(? AS TEXT) ORDER BY created_at DESC LIMIT 1", [url]);
 
     return NextResponse.json(bookmark, { status: 201 });
   } catch (err: any) {

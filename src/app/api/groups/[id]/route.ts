@@ -19,7 +19,7 @@ export async function PUT(
     }
 
     try {
-      await db.execute(`UPDATE groups SET name = ? WHERE id = ${numId}`, [name.trim()]);
+      await db.execute(`UPDATE groups SET name = CAST(? AS TEXT) WHERE id = ${numId}`, [name.trim()]);
       const group = await db.get(`SELECT * FROM groups WHERE id = ${numId}`);
       return NextResponse.json(group);
     } catch (err: any) {

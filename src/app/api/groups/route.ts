@@ -23,9 +23,9 @@ export async function POST(request: Request) {
     }
     
     try {
-      const result = await db.execute("INSERT INTO groups (name) VALUES (?)", [name.trim()]);
+      await db.execute("INSERT INTO groups (name) VALUES (CAST(? AS TEXT))", [name.trim()]);
       // INSERT後のID取得
-      const newGroup = await db.get("SELECT * FROM groups WHERE name = ?", [name.trim()]);
+      const newGroup = await db.get("SELECT * FROM groups WHERE name = CAST(? AS TEXT)", [name.trim()]);
       return NextResponse.json(newGroup, { status: 201 });
     } catch (err: any) {
       console.error(err);

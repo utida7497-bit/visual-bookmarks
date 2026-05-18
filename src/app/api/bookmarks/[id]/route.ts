@@ -18,7 +18,7 @@ export async function PUT(
     const values: (string | null)[] = [];
 
     if (memo !== undefined) {
-      updates.push("memo = ?");
+      updates.push("memo = CAST(? AS TEXT)");
       values.push(memo);
     }
     if (groupId !== undefined) {
