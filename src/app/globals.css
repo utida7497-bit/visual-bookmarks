@@ -1,14 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@300;400;600&display=swap');
 
 :root {
-  --bg-color: #0b1120; /* Deep midnight */
-  --panel-bg: rgba(15, 23, 42, 0.65);
-  --accent-color: #d4af37; /* Refined metallic gold */
-  --accent-color-rgb: 212, 175, 55;
-  --text-main: #f1f5f9;
-  --text-muted: #94a3b8;
-  --border-color: rgba(255, 255, 255, 0.08);
-  --glass-blur: blur(16px);
+  --bg-color: #1a1510; /* Warmer dark base */
+  --panel-bg: rgba(25, 20, 15, 0.45); /* Lighter, warmer glass panel */
+  --accent-color: #eab308; /* Brighter gold */
+  --accent-color-rgb: 234, 179, 8;
+  --text-main: #f8fafc;
+  --text-muted: #cbd5e1; /* Brighter muted text */
+  --border-color: rgba(255, 255, 255, 0.15);
+  --glass-blur: blur(12px); /* Slightly less blur to show background more */
 }
 
 * {
@@ -23,8 +23,8 @@ body {
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
-  /* 夜の書斎を思わせる背景画像とダークオーバーレイ */
-  background: linear-gradient(rgba(11, 17, 32, 0.7), rgba(11, 17, 32, 0.85)), url('/bg-library.png') no-repeat center center fixed;
+  /* 温かみのある書斎の背景画像（明るめ） */
+  background: linear-gradient(rgba(20, 15, 10, 0.2), rgba(20, 15, 10, 0.5)), url('/bg-library.png') no-repeat center center fixed;
   background-size: cover;
   
   /* アンティークな羽ペンのカスタムカーソル */
