@@ -5,7 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import BookmarkGrid from "@/components/BookmarkGrid";
 
 export default function Home() {
-  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<number | string | null>(null);
   const [refresh, setRefresh] = useState(0);
 
   return (

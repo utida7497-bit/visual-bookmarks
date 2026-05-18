@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import BookmarkCard from "./BookmarkCard";
 import AddBookmarkForm from "./AddBookmarkForm";
-import { LayoutGrid, List, PackageOpen, Trash2 } from "lucide-react";
+import { LayoutGrid, List, PackageOpen, Trash2, Search, ArrowUpDown } from "lucide-react";
 
 interface Bookmark {
   id: number;
@@ -12,11 +12,12 @@ interface Bookmark {
   image_url: string | null;
   summary: string | null;
   memo: string | null;
+  is_favorite?: boolean | number;
   created_at: string;
 }
 
 interface BookmarkGridProps {
-  selectedGroupId: number | null;
+  selectedGroupId: number | string | null;
 }
 
 type ViewMode = "grid" | "list";
@@ -26,6 +27,8 @@ export default function BookmarkGrid({ selectedGroupId }: BookmarkGridProps) {
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [errorObj, setErrorObj] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState("newest");
 
   const fetchBookmarks = useCallback(async () => {
     if (selectedGroupId === null) return;
@@ -56,57 +59,152 @@ export default function BookmarkGrid({ selectedGroupId }: BookmarkGridProps) {
     setBookmarks((prev) => prev.filter((b) => b.id !== id));
   };
 
+  // 検索条件によるフィルタリング
+  const filteredBookmarks = bookmarks.filter((bookmark) => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
+    const titleMatch = bookmark.title?.toLowerCase().includes(q) || false;
+    const urlMatch = bookmark.url?.toLowerCase().includes(q) || false;
+    const summaryMatch = bookmark.summary?.toLowerCase().includes(q) || false;
+    const memoMatch = bookmark.memo?.toLowerCase().includes(q) || false;
+    return titleMatch || urlMatch || summaryMatch || memoMatch;
+  });
+
+  // 並べ替え（ソート）
+  const sortedBookmarks = [...filteredBookmarks].sort((a, b) => {
+    if (sortOrder === "newest") {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    }
+    if (sortOrder === "oldest") {
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    }
+    if (sortOrder === "title-asc") {
+      const titleA = a.title || a.url;
+      const titleB = b.title || b.url;
+      return titleA.localeCompare(titleB, "ja");
+    }
+    if (sortOrder === "title-desc") {
+      const titleA = a.title || a.url;
+      const titleB = b.title || b.url;
+      return titleB.localeCompare(titleA, "ja");
+    }
+    return 0;
+  });
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "20px" }}>
-        <div style={{ flex: 1 }}>
-          <AddBookmarkForm selectedGroupId={selectedGroupId} onAdded={fetchBookmarks} />
-        </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <AddBookmarkForm selectedGroupId={selectedGroupId} onAdded={fetchBookmarks} />
         
-        {/* 表示切替ボタン */}
-        <div className="glass-panel" style={{ 
-          display: "flex", 
-          padding: "4px", 
-          borderRadius: "10px",
-          height: "fit-content",
-          border: "1px solid rgba(212, 175, 55, 0.2)"
-        }}>
-          <button 
-            onClick={() => setViewMode("grid")}
-            style={{
-              padding: "6px 10px",
-              background: viewMode === "grid" ? "rgba(212, 175, 55, 0.15)" : "transparent",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-              color: viewMode === "grid" ? "var(--accent-color)" : "var(--text-muted)",
-              transition: "all 0.2s",
+        {/* コントロールパネル: 検索、並び替え、表示切替 */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+          
+          {/* 検索フォーム */}
+          <div className="glass-panel" style={{
+            display: "flex",
+            alignItems: "center",
+            padding: "8px 16px",
+            borderRadius: "12px",
+            border: "1px solid var(--border-color)",
+            background: "rgba(0, 0, 0, 0.25)",
+            flex: "1 1 300px",
+            minWidth: "200px",
+            maxWidth: "500px"
+          }}>
+            <Search size={16} style={{ color: "var(--accent-color)", marginRight: "10px", opacity: 0.8 }} />
+            <input
+              type="text"
+              placeholder="蔵書から検索..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                background: "transparent",
+                border: "none",
+                outline: "none",
+                color: "var(--text-main)",
+                fontSize: "0.9rem",
+                width: "100%"
+              }}
+            />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+            {/* 並べ替え */}
+            <div className="glass-panel" style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "center"
-            }}
-            title="グリッド表示"
-          >
-            <LayoutGrid size={18} strokeWidth={viewMode === "grid" ? 2.5 : 2} />
-          </button>
-          <button 
-            onClick={() => setViewMode("list")}
-            style={{
-              padding: "6px 10px",
-              background: viewMode === "list" ? "rgba(212, 175, 55, 0.15)" : "transparent",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-              color: viewMode === "list" ? "var(--accent-color)" : "var(--text-muted)",
-              transition: "all 0.2s",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}
-            title="リスト表示"
-          >
-            <List size={18} strokeWidth={viewMode === "list" ? 2.5 : 2} />
-          </button>
+              padding: "6px 12px",
+              borderRadius: "10px",
+              border: "1px solid var(--border-color)",
+              background: "rgba(0, 0, 0, 0.2)"
+            }}>
+              <ArrowUpDown size={16} style={{ color: "var(--accent-color)", marginRight: "8px", opacity: 0.8 }} />
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  outline: "none",
+                  color: "var(--text-main)",
+                  fontSize: "0.85rem",
+                  cursor: "pointer",
+                  fontFamily: "inherit"
+                }}
+              >
+                <option value="newest" style={{ background: "#1a1510", color: "white" }}>追加順（新しい）</option>
+                <option value="oldest" style={{ background: "#1a1510", color: "white" }}>追加順（古い）</option>
+                <option value="title-asc" style={{ background: "#1a1510", color: "white" }}>タイトル (A-Z)</option>
+                <option value="title-desc" style={{ background: "#1a1510", color: "white" }}>タイトル (Z-A)</option>
+              </select>
+            </div>
+
+            {/* 表示切替ボタン */}
+            <div className="glass-panel" style={{ 
+              display: "flex", 
+              padding: "4px", 
+              borderRadius: "10px",
+              height: "fit-content",
+              border: "1px solid var(--border-color)"
+            }}>
+              <button 
+                onClick={() => setViewMode("grid")}
+                style={{
+                  padding: "6px 10px",
+                  background: viewMode === "grid" ? "rgba(234, 179, 8, 0.15)" : "transparent",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  color: viewMode === "grid" ? "var(--accent-color)" : "var(--text-muted)",
+                  transition: "all 0.2s",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+                title="グリッド表示"
+              >
+                <LayoutGrid size={18} strokeWidth={viewMode === "grid" ? 2.5 : 2} />
+              </button>
+              <button 
+                onClick={() => setViewMode("list")}
+                style={{
+                  padding: "6px 10px",
+                  background: viewMode === "list" ? "rgba(234, 179, 8, 0.15)" : "transparent",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  color: viewMode === "list" ? "var(--accent-color)" : "var(--text-muted)",
+                  transition: "all 0.2s",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+                title="リスト表示"
+              >
+                <List size={18} strokeWidth={viewMode === "list" ? 2.5 : 2} />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -127,12 +225,24 @@ export default function BookmarkGrid({ selectedGroupId }: BookmarkGridProps) {
           textAlign: "center",
           color: "rgba(255,255,255,0.3)",
           padding: "100px 40px",
-          border: "1px dashed rgba(212, 175, 55, 0.2)",
+          border: "1px dashed rgba(234, 179, 8, 0.2)",
           borderRadius: "24px",
           background: "rgba(0,0,0,0.2)"
         }}>
           <PackageOpen size={64} strokeWidth={1} style={{ marginBottom: "20px", opacity: 0.5, color: "var(--accent-color)" }} />
           <p style={{ fontFamily: "Playfair Display, serif", letterSpacing: "1px", fontSize: "1.2rem", color: "rgba(255,255,255,0.5)" }}>この棚にはまだ蔵書がありません</p>
+        </div>
+      ) : sortedBookmarks.length === 0 ? (
+        <div style={{
+          textAlign: "center",
+          color: "rgba(255,255,255,0.3)",
+          padding: "80px 40px",
+          border: "1px dashed rgba(234, 179, 8, 0.1)",
+          borderRadius: "24px",
+          background: "rgba(0,0,0,0.1)"
+        }}>
+          <Search size={48} strokeWidth={1.5} style={{ marginBottom: "20px", opacity: 0.5, color: "var(--accent-color)" }} />
+          <p style={{ fontFamily: "Playfair Display, serif", letterSpacing: "1px", fontSize: "1.1rem", color: "rgba(255,255,255,0.5)" }}>検索条件に一致する蔵書が見つかりませんでした</p>
         </div>
       ) : viewMode === "grid" ? (
         /* グリッド表示（画像あり） */
@@ -141,7 +251,7 @@ export default function BookmarkGrid({ selectedGroupId }: BookmarkGridProps) {
           gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
           gap: "24px",
         }}>
-          {bookmarks.map((bookmark) => (
+          {sortedBookmarks.map((bookmark) => (
             <BookmarkCard key={bookmark.id} bookmark={bookmark} onDelete={handleDelete} />
           ))}
         </div>
@@ -163,7 +273,7 @@ export default function BookmarkGrid({ selectedGroupId }: BookmarkGridProps) {
             <span>メモ / 内容</span>
             <span style={{ textAlign: "right" }}>操作</span>
           </div>
-          {bookmarks.map((bookmark) => (
+          {sortedBookmarks.map((bookmark) => (
             <div 
               key={bookmark.id} 
               style={{ 

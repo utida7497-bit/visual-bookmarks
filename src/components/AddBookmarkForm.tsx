@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, BookOpen, Loader2 } from "lucide-react";
 
 interface AddBookmarkFormProps {
-  selectedGroupId: number | null;
+  selectedGroupId: number | string | null;
   onAdded?: () => void;
 }
 
@@ -22,7 +22,7 @@ export default function AddBookmarkForm({ selectedGroupId, onAdded }: AddBookmar
       const res = await fetch("/api/bookmarks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, groupId: selectedGroupId }),
+        body: JSON.stringify({ url, groupId: selectedGroupId === "favorites" ? null : selectedGroupId }),
       });
       if (!res.ok) {
         const data = await res.json();

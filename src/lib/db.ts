@@ -56,6 +56,7 @@ export async function initDB() {
       image_url TEXT,
       summary TEXT,
       memo TEXT,
+      is_favorite BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
@@ -64,6 +65,8 @@ export async function initDB() {
     // Vercel Postgres Native (sql tagged template)
     await vercelSql.query(createGroupsTable);
     await vercelSql.query(createBookmarksTable);
+    // Migration: Add is_favorite column if it doesn't exist
+    await vercelSql.query("ALTER TABLE bookmarks ADD COLUMN IF NOT EXISTS is_favorite BOOLEAN DEFAULT FALSE");
     await vercelSql.query("INSERT INTO groups (name) VALUES ('未分類') ON CONFLICT (name) DO NOTHING");
   } else {
     const sdb = await getSQLite();
@@ -81,9 +84,16 @@ export async function initDB() {
         image_url TEXT,
         summary TEXT,
         memo TEXT,
+        is_favorite INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    // Migration: Add is_favorite column if it doesn't exist in SQLite
+    try {
+      sdb.exec("ALTER TABLE bookmarks ADD COLUMN is_favorite INTEGER DEFAULT 0");
+    } catch (e) {
+      // Ignored if column already exists
+    }
     sdb.prepare("INSERT OR IGNORE INTO groups (name) VALUES (?)").run('未分類');
   }
 }

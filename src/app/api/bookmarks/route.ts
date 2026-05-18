@@ -47,7 +47,10 @@ export async function GET(request: Request) {
     const groupId = searchParams.get("groupId");
 
     if (isCloud) {
-      if (groupId) {
+      if (groupId === "favorites") {
+        const { rows } = await sql`SELECT * FROM bookmarks WHERE is_favorite = TRUE ORDER BY created_at DESC`;
+        return NextResponse.json(rows);
+      } else if (groupId) {
         const numId = Number(groupId);
         if (isNaN(numId)) throw new Error("Invalid groupId");
         const { rows } = await sql`SELECT * FROM bookmarks WHERE group_id = ${numId} ORDER BY created_at DESC`;
@@ -58,7 +61,9 @@ export async function GET(request: Request) {
       }
     } else {
       let result;
-      if (groupId) {
+      if (groupId === "favorites") {
+        result = await db.query("SELECT * FROM bookmarks WHERE is_favorite = 1 ORDER BY created_at DESC");
+      } else if (groupId) {
         const numId = Number(groupId);
         if (isNaN(numId)) throw new Error("Invalid groupId");
         result = await db.query(`SELECT * FROM bookmarks WHERE group_id = ${numId} ORDER BY created_at DESC`);

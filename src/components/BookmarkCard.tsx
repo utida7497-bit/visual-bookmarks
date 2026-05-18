@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Trash2, FileText, Loader2 } from "lucide-react";
+import { Trash2, FileText, Loader2, Star } from "lucide-react";
 
 interface Bookmark {
   id: number;
@@ -10,6 +10,7 @@ interface Bookmark {
   image_url: string | null;
   summary: string | null;
   memo: string | null;
+  is_favorite?: boolean | number;
   created_at: string;
 }
 
@@ -20,6 +21,7 @@ export default function BookmarkCard({ bookmark, onDelete }: {
   const [memo, setMemo] = useState(bookmark.memo || "");
   const [saving, setSaving] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(Boolean(bookmark.is_favorite));
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // メモを自動保存（入力後1秒後）
@@ -37,6 +39,23 @@ export default function BookmarkCard({ bookmark, onDelete }: {
     }, 1000);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [memo, bookmark.id, bookmark.memo]);
+
+  const handleToggleFavorite = async () => {
+    const nextVal = !isFavorite;
+    setIsFavorite(nextVal);
+    try {
+      const res = await fetch(`/api/bookmarks/${bookmark.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isFavorite: nextVal }),
+      });
+      if (!res.ok) {
+        setIsFavorite(!nextVal);
+      }
+    } catch {
+      setIsFavorite(!nextVal);
+    }
+  };
 
   const domain = (() => {
     try { return new URL(bookmark.url).hostname; } catch { return bookmark.url; }
@@ -188,32 +207,58 @@ export default function BookmarkCard({ bookmark, onDelete }: {
           <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "Playfair Display, serif" }}>
             {new Date(bookmark.created_at).toLocaleDateString("ja-JP")}
           </span>
-          <button
-            onClick={() => onDelete(bookmark.id)}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "rgba(255,255,255,0.3)",
-              cursor: "pointer",
-              padding: "6px",
-              borderRadius: "4px",
-              transition: "all 0.2s",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "#ff6b6b";
-              e.currentTarget.style.background = "rgba(255, 107, 107, 0.1)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "rgba(255,255,255,0.3)";
-              e.currentTarget.style.background = "transparent";
-            }}
-            title="削除"
-          >
-            <Trash2 size={16} />
-          </button>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <button
+              onClick={handleToggleFavorite}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: isFavorite ? "var(--accent-color)" : "rgba(255,255,255,0.3)",
+                cursor: "pointer",
+                padding: "6px",
+                borderRadius: "4px",
+                transition: "all 0.2s",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
+              title={isFavorite ? "お気に入り解除" : "お気に入り登録"}
+              onMouseEnter={(e) => {
+                if (!isFavorite) e.currentTarget.style.color = "var(--accent-color)";
+              }}
+              onMouseLeave={(e) => {
+                if (!isFavorite) e.currentTarget.style.color = "rgba(255,255,255,0.3)";
+              }}
+            >
+              <Star size={16} fill={isFavorite ? "var(--accent-color)" : "none"} stroke={isFavorite ? "var(--accent-color)" : "currentColor"} />
+            </button>
+            <button
+              onClick={() => onDelete(bookmark.id)}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "rgba(255,255,255,0.3)",
+                cursor: "pointer",
+                padding: "6px",
+                borderRadius: "4px",
+                transition: "all 0.2s",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#ff6b6b";
+                e.currentTarget.style.background = "rgba(255, 107, 107, 0.1)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "rgba(255,255,255,0.3)";
+                e.currentTarget.style.background = "transparent";
+              }}
+              title="削除"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
         </div>
       </div>
       <style>{`

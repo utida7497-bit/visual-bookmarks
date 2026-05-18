@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Edit2, Trash2, ChevronLeft, ChevronRight, Library } from "lucide-react";
+import { Plus, Edit2, Trash2, ChevronLeft, ChevronRight, Library, Star } from "lucide-react";
 
 interface Group {
   id: number;
@@ -9,8 +9,8 @@ interface Group {
 }
 
 interface SidebarProps {
-  onSelectGroup: (id: number | null) => void;
-  selectedGroupId: number | null;
+  onSelectGroup: (id: number | string | null) => void;
+  selectedGroupId: number | string | null;
   onGroupsChange?: () => void;
 }
 
@@ -173,20 +173,56 @@ export default function Sidebar({ onSelectGroup, selectedGroupId, onGroupsChange
                 width: "100%",
                 padding: "10px 14px",
                 background: "rgba(0, 0, 0, 0.3)",
-                border: "1px solid rgba(212, 175, 55, 0.4)",
+                border: "1px solid rgba(234, 179, 8, 0.4)",
                 borderRadius: "8px",
                 color: "var(--text-main)",
                 outline: "none",
                 fontFamily: "Playfair Display, serif",
                 letterSpacing: "1px"
               }}
-              onFocus={(e) => e.target.style.boxShadow = "0 0 8px rgba(212, 175, 55, 0.3)"}
-              onBlur={(e) => e.target.style.boxShadow = "none"}
+              onFocus={(e) => (e.target.style.boxShadow = "0 0 8px rgba(234, 179, 8, 0.3)")}
+              onBlur={(e) => (e.target.style.boxShadow = "none")}
             />
           </form>
         )}
 
         <ul style={{ listStyle: "none", padding: "0 10px 0 20px", margin: 0, flex: 1, overflowY: "auto", overflowX: "hidden", minWidth: "280px" }}>
+          {/* お気に入り (Special Shelf) */}
+          <li 
+            className={`book-spine ${selectedGroupId === "favorites" ? "selected" : ""}`} 
+            style={{ 
+              background: "linear-gradient(90deg, #5f4b1e 0%, #a67c1e 50%, #5f4b1e 100%)", // Golden brown spine
+            }}
+          >
+            <div 
+              style={{
+                padding: "12px 14px 12px 30px",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                position: "relative",
+                zIndex: 2,
+                minHeight: "44px"
+              }}
+              onClick={() => onSelectGroup("favorites")}
+            >
+              <Star size={16} fill={selectedGroupId === "favorites" ? "var(--accent-color)" : "none"} stroke={selectedGroupId === "favorites" ? "var(--accent-color)" : "rgba(255,255,255,0.8)"} style={{ filter: "drop-shadow(0 0 2px rgba(0,0,0,0.5))" }} />
+              <span style={{ 
+                fontFamily: "Playfair Display, serif",
+                fontWeight: selectedGroupId === "favorites" ? "700" : "500",
+                color: "#fff",
+                letterSpacing: "1px",
+                fontSize: "0.95rem",
+                textShadow: "1px 1px 2px rgba(0,0,0,0.8)"
+              }}>
+                お気に入り
+              </span>
+            </div>
+          </li>
+
+          {/* Separator line */}
+          <div style={{ height: "1px", background: "rgba(255,255,255,0.08)", margin: "12px 0" }} />
+
           {groups.map((group, index) => (
             <li key={group.id} className={`book-spine ${selectedGroupId === group.id ? "selected" : ""}`} style={{ background: spineColors[index % spineColors.length] }}>
               {editingGroupId === group.id ? (

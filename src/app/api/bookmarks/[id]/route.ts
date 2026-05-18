@@ -12,22 +12,25 @@ export async function PUT(
     if (isNaN(numId)) throw new Error("Invalid id");
 
     const body = await request.json();
-    const { memo, groupId } = body;
+    const { memo, groupId, isFavorite } = body;
 
     const hasMemo = memo !== undefined;
     const hasGroupId = groupId !== undefined;
+    const hasIsFavorite = isFavorite !== undefined;
 
-    if (!hasMemo && !hasGroupId) {
+    if (!hasMemo && !hasGroupId && !hasIsFavorite) {
       return NextResponse.json({ error: "更新する内容がありません" }, { status: 400 });
     }
 
     if (isCloud) {
-      if (hasMemo && hasGroupId) {
-        const numGroupId = groupId ? Number(groupId) : null;
-        await sql`UPDATE bookmarks SET memo = ${memo}, group_id = ${numGroupId} WHERE id = ${numId}`;
-      } else if (hasMemo) {
+      if (hasIsFavorite) {
+        const favBool = Boolean(isFavorite);
+        await sql`UPDATE bookmarks SET is_favorite = ${favBool} WHERE id = ${numId}`;
+      }
+      if (hasMemo) {
         await sql`UPDATE bookmarks SET memo = ${memo} WHERE id = ${numId}`;
-      } else if (hasGroupId) {
+      }
+      if (hasGroupId) {
         const numGroupId = groupId ? Number(groupId) : null;
         await sql`UPDATE bookmarks SET group_id = ${numGroupId} WHERE id = ${numId}`;
       }
@@ -35,14 +38,19 @@ export async function PUT(
       return NextResponse.json(rows[0]);
     } else {
       const updates: string[] = [];
-      const values: (string | null)[] = [];
+      const values: any[] = [];
 
       if (hasMemo) {
         updates.push("memo = ?");
         values.push(memo);
       }
       if (hasGroupId) {
-        updates.push(`group_id = ${groupId ? Number(groupId) : 'NULL'}`);
+        updates.push("group_id = ?");
+        values.push(groupId ? Number(groupId) : null);
+      }
+      if (hasIsFavorite) {
+        updates.push("is_favorite = ?");
+        values.push(isFavorite ? 1 : 0);
       }
 
       const query = `UPDATE bookmarks SET ${updates.join(", ")} WHERE id = ${numId}`;
