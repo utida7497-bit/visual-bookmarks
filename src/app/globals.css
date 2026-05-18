@@ -23,8 +23,8 @@ body {
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
-  /* 温かみのある書斎の背景画像（明るめ） */
-  background: linear-gradient(rgba(20, 15, 10, 0.2), rgba(20, 15, 10, 0.5)), url('/bg-library.png') no-repeat center center fixed;
+  /* 温かみのある書斎の背景画像（テキストが読みやすいよう暗めのオーバーレイ） */
+  background: linear-gradient(rgba(11, 14, 18, 0.4), rgba(11, 14, 18, 0.7)), url('/bg-library.png') no-repeat center center fixed;
   background-size: cover;
   
   /* アンティークな羽ペンのカスタムカーソル */

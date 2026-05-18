@@ -28,10 +28,10 @@ export default function Home() {
       }}>
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
-            <h1 style={{ fontSize: "2.8rem", marginBottom: "8px", letterSpacing: "1px" }}>
+            <h1 style={{ fontSize: "2.8rem", marginBottom: "8px", letterSpacing: "1px", textShadow: "0 2px 12px rgba(0,0,0,0.8), 0 0 4px rgba(0,0,0,0.9)" }}>
               Library Archival
             </h1>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.95rem" }}>
+            <p style={{ color: "var(--text-main)", fontSize: "0.95rem", textShadow: "0 1px 8px rgba(0,0,0,0.9), 0 0 3px rgba(0,0,0,0.9)", fontWeight: "500" }}>
               あなただけのデジタル図書館。URLを追加して、知識を整理してください。
             </p>
           </div>
