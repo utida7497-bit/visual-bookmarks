@@ -23,8 +23,9 @@ body {
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
-  /* 夜の図書館を思わせる深いグラデーション */
-  background: radial-gradient(circle at 50% 30%, #17223b 0%, #0b1120 100%);
+  /* 夜の書斎を思わせる背景画像とダークオーバーレイ */
+  background: linear-gradient(rgba(11, 17, 32, 0.7), rgba(11, 17, 32, 0.85)), url('/bg-library.png') no-repeat center center fixed;
+  background-size: cover;
   
   /* アンティークな羽ペンのカスタムカーソル */
   cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23d4af37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.67 19a2 2 0 0 0 1.416-.588l6.154-6.172a6 6 0 0 0-8.49-8.49L5.586 9.914A2 2 0 0 0 5 11.328V18a1 1 0 0 0 1 1z"/><polyline points="16 8 2 22"/><polyline points="17.5 15 9 15"/></svg>') 2 22, auto;
