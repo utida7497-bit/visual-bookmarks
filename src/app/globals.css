@@ -1,13 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@300;400;600&display=swap');
 
 :root {
-  --bg-color: #0f172a;
-  --panel-bg: rgba(30, 41, 59, 0.7);
-  --accent-color: #fbbf24; /* Gold */
-  --text-main: #f8fafc;
+  --bg-color: #0b1120; /* Deep midnight */
+  --panel-bg: rgba(15, 23, 42, 0.65);
+  --accent-color: #d4af37; /* Refined metallic gold */
+  --accent-color-rgb: 212, 175, 55;
+  --text-main: #f1f5f9;
   --text-muted: #94a3b8;
-  --border-color: rgba(255, 255, 255, 0.1);
-  --glass-blur: blur(12px);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --glass-blur: blur(16px);
 }
 
 * {
@@ -22,13 +23,22 @@ body {
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
-  /* 夜の図書館を思わせるグラデーション */
-  background: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
+  /* 夜の図書館を思わせる深いグラデーション */
+  background: radial-gradient(circle at 50% 30%, #17223b 0%, #0b1120 100%);
+  
+  /* アンティークな羽ペンのカスタムカーソル */
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23d4af37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.67 19a2 2 0 0 0 1.416-.588l6.154-6.172a6 6 0 0 0-8.49-8.49L5.586 9.914A2 2 0 0 0 5 11.328V18a1 1 0 0 0 1 1z"/><polyline points="16 8 2 22"/><polyline points="17.5 15 9 15"/></svg>') 2 22, auto;
+}
+
+/* ボタン等、ポインターになる要素のカーソルも統一 */
+a, button, [role="button"], input[type="submit"] {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.67 19a2 2 0 0 0 1.416-.588l6.154-6.172a6 6 0 0 0-8.49-8.49L5.586 9.914A2 2 0 0 0 5 11.328V18a1 1 0 0 0 1 1z"/><polyline points="16 8 2 22"/><polyline points="17.5 15 9 15"/></svg>') 2 22, pointer;
 }
 
 h1, h2, h3 {
   font-family: 'Playfair Display', serif;
   color: var(--accent-color);
+  letter-spacing: 0.05em;
 }
 
 /* ほこり/光の粒のアニメーション */
@@ -44,27 +54,79 @@ h1, h2, h3 {
 
 .particle {
   position: absolute;
-  background: white;
+  background: var(--accent-color);
   border-radius: 50%;
-  opacity: 0.3;
-  filter: blur(1px);
-  animation: float 20s infinite linear;
+  opacity: 0.15;
+  filter: blur(2px);
+  animation: float 25s infinite linear;
 }
 
 @keyframes float {
   0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
-  10% { opacity: 0.3; }
-  90% { opacity: 0.3; }
-  100% { transform: translateY(-100vh) translateX(50px) rotate(360deg); opacity: 0; }
+  10% { opacity: 0.15; }
+  90% { opacity: 0.15; }
+  100% { transform: translateY(-100vh) translateX(30px) rotate(360deg); opacity: 0; }
 }
 
-/* グラスモーフィズム */
+/* 洗練されたグラスモーフィズム */
 .glass-panel {
   background: var(--panel-bg);
   backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-color);
+  border-top: 1px solid rgba(255, 255, 255, 0.12); /* 上部のハイライト反射 */
   border-radius: 16px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  box-shadow: 
+    0 4px 24px -1px rgba(0, 0, 0, 0.4), 
+    0 0 1px 1px rgba(255, 255, 255, 0.03) inset;
+}
+
+/* Sidebar用の「本の背表紙」スタイル */
+.book-spine {
+  position: relative;
+  border-radius: 4px 10px 10px 4px;
+  box-shadow: 
+    inset 5px 0 12px rgba(0,0,0,0.6), /* 左側の深い溝 */
+    inset -2px 0 6px rgba(255,255,255,0.15), /* 右側のハイライト */
+    0 5px 8px rgba(0,0,0,0.4); /* 全体のドロップシャドウ */
+  overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.3s ease;
+  margin-bottom: 12px;
+}
+
+/* 背表紙の溝デザイン */
+.book-spine::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 14px; bottom: 0;
+  width: 3px;
+  background: rgba(0,0,0,0.35);
+  box-shadow: 1px 0 2px rgba(255,255,255,0.1);
+  z-index: 1;
+}
+.book-spine::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 18px; bottom: 0;
+  width: 1px;
+  background: rgba(255,255,255,0.05);
+  z-index: 1;
+}
+
+.book-spine:hover {
+  transform: translateX(6px) scale(1.02);
+  filter: brightness(1.15);
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.67 19a2 2 0 0 0 1.416-.588l6.154-6.172a6 6 0 0 0-8.49-8.49L5.586 9.914A2 2 0 0 0 5 11.328V18a1 1 0 0 0 1 1z"/><polyline points="16 8 2 22"/><polyline points="17.5 15 9 15"/></svg>') 2 22, pointer;
+}
+
+.book-spine.selected {
+  transform: translateX(12px) scale(1.02);
+  box-shadow: 
+    inset 5px 0 12px rgba(0,0,0,0.6),
+    inset -2px 0 6px rgba(255,255,255,0.25),
+    -6px 6px 16px rgba(var(--accent-color-rgb), 0.25);
+  border-left: 2px solid var(--accent-color);
+  z-index: 10;
 }
 
 /* スクロールバーのカスタマイズ */

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import BookmarkGrid from "@/components/BookmarkGrid";
 import SyncModal from "@/components/SyncModal";
+import { Smartphone } from "lucide-react";
 
 export default function Home() {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
@@ -57,7 +58,8 @@ export default function Home() {
             onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)")}
           >
-            <span>📱 スマホで開く</span>
+            <Smartphone size={18} />
+            <span>スマホ連携</span>
           </button>
         </header>
 

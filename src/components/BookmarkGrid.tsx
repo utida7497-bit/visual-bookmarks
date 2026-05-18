@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import BookmarkCard from "./BookmarkCard";
 import AddBookmarkForm from "./AddBookmarkForm";
+import { LayoutGrid, List, PackageOpen, Trash2 } from "lucide-react";
 
 interface Bookmark {
   id: number;
@@ -56,7 +57,7 @@ export default function BookmarkGrid({ selectedGroupId }: BookmarkGridProps) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "20px" }}>
         <div style={{ flex: 1 }}>
           <AddBookmarkForm selectedGroupId={selectedGroupId} onAdded={fetchBookmarks} />
@@ -66,73 +67,79 @@ export default function BookmarkGrid({ selectedGroupId }: BookmarkGridProps) {
         <div className="glass-panel" style={{ 
           display: "flex", 
           padding: "4px", 
-          borderRadius: "12px",
-          height: "fit-content"
+          borderRadius: "10px",
+          height: "fit-content",
+          border: "1px solid rgba(212, 175, 55, 0.2)"
         }}>
           <button 
             onClick={() => setViewMode("grid")}
             style={{
-              padding: "8px 12px",
-              background: viewMode === "grid" ? "rgba(255,255,255,0.1)" : "transparent",
+              padding: "6px 10px",
+              background: viewMode === "grid" ? "rgba(212, 175, 55, 0.15)" : "transparent",
               border: "none",
-              borderRadius: "8px",
+              borderRadius: "6px",
               cursor: "pointer",
               color: viewMode === "grid" ? "var(--accent-color)" : "var(--text-muted)",
-              fontSize: "1.2rem",
-              transition: "all 0.2s"
+              transition: "all 0.2s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
             }}
             title="グリッド表示"
           >
-            🔲
+            <LayoutGrid size={18} strokeWidth={viewMode === "grid" ? 2.5 : 2} />
           </button>
           <button 
             onClick={() => setViewMode("list")}
             style={{
-              padding: "8px 12px",
-              background: viewMode === "list" ? "rgba(255,255,255,0.1)" : "transparent",
+              padding: "6px 10px",
+              background: viewMode === "list" ? "rgba(212, 175, 55, 0.15)" : "transparent",
               border: "none",
-              borderRadius: "8px",
+              borderRadius: "6px",
               cursor: "pointer",
               color: viewMode === "list" ? "var(--accent-color)" : "var(--text-muted)",
-              fontSize: "1.2rem",
-              transition: "all 0.2s"
+              transition: "all 0.2s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
             }}
             title="リスト表示"
           >
-            ☰
+            <List size={18} strokeWidth={viewMode === "list" ? 2.5 : 2} />
           </button>
         </div>
       </div>
 
       {errorObj ? (
         <div style={{ padding: "20px", background: "rgba(255,0,0,0.1)", border: "1px solid red", borderRadius: "8px", color: "white" }}>
-          <h3>データベースエラーが発生しました</h3>
-          <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-all", fontSize: "12px" }}>
+          <h3 style={{ fontFamily: "Inter, sans-serif" }}>データベースエラーが発生しました</h3>
+          <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-all", fontSize: "12px", marginTop: "10px" }}>
             {JSON.stringify(errorObj, null, 2)}
           </pre>
         </div>
       ) : loading ? (
-        <div style={{ textAlign: "center", color: "#94a3b8", padding: "60px" }}>
+        <div style={{ textAlign: "center", color: "var(--accent-color)", padding: "80px", opacity: 0.7 }}>
           <div className="loading-spinner" />
-          <p>蔵書を検索中...</p>
+          <p style={{ fontFamily: "Playfair Display, serif", letterSpacing: "2px", fontSize: "1.1rem" }}>検索中...</p>
         </div>
       ) : bookmarks.length === 0 ? (
         <div style={{
           textAlign: "center",
-          color: "#475569",
-          padding: "80px 40px",
-          border: "2px dashed rgba(255,255,255,0.08)",
-          borderRadius: "20px"
+          color: "rgba(255,255,255,0.3)",
+          padding: "100px 40px",
+          border: "1px dashed rgba(212, 175, 55, 0.2)",
+          borderRadius: "24px",
+          background: "rgba(0,0,0,0.2)"
         }}>
-          <p style={{ fontSize: "3rem", marginBottom: "16px" }}>📭</p>
-          <p>この棚はまだ空っぽです。</p>
+          <PackageOpen size={64} strokeWidth={1} style={{ marginBottom: "20px", opacity: 0.5, color: "var(--accent-color)" }} />
+          <p style={{ fontFamily: "Playfair Display, serif", letterSpacing: "1px", fontSize: "1.2rem", color: "rgba(255,255,255,0.5)" }}>この棚にはまだ蔵書がありません</p>
         </div>
       ) : viewMode === "grid" ? (
         /* グリッド表示（画像あり） */
         <div style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-          gap: "20px",
+          gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+          gap: "24px",
         }}>
           {bookmarks.map((bookmark) => (
             <BookmarkCard key={bookmark.id} bookmark={bookmark} onDelete={handleDelete} />
@@ -140,15 +147,17 @@ export default function BookmarkGrid({ selectedGroupId }: BookmarkGridProps) {
         </div>
       ) : (
         /* リスト表示（画像なし・コンパクト） */
-        <div className="glass-panel" style={{ padding: "10px", display: "flex", flexDirection: "column" }}>
+        <div className="glass-panel" style={{ padding: "0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <div style={{ 
             display: "grid", 
-            gridTemplateColumns: "1fr 2fr 100px", 
-            padding: "10px 15px",
+            gridTemplateColumns: "minmax(200px, 1.5fr) 2fr 80px", 
+            padding: "16px 24px",
             borderBottom: "1px solid var(--border-color)",
-            color: "var(--text-muted)",
-            fontSize: "0.8rem",
-            fontWeight: "600"
+            color: "var(--accent-color)",
+            fontSize: "0.85rem",
+            fontWeight: "600",
+            letterSpacing: "1px",
+            background: "rgba(0,0,0,0.3)"
           }}>
             <span>タイトル</span>
             <span>メモ / 内容</span>
@@ -159,11 +168,11 @@ export default function BookmarkGrid({ selectedGroupId }: BookmarkGridProps) {
               key={bookmark.id} 
               style={{ 
                 display: "grid", 
-                gridTemplateColumns: "1fr 2fr 100px", 
-                padding: "12px 15px",
-                borderBottom: "1px solid rgba(255,255,255,0.03)",
+                gridTemplateColumns: "minmax(200px, 1.5fr) 2fr 80px", 
+                padding: "16px 24px",
+                borderBottom: "1px solid rgba(255,255,255,0.04)",
                 alignItems: "center",
-                gap: "15px",
+                gap: "20px",
                 transition: "background 0.2s"
               }}
               className="list-item-hover"
@@ -175,7 +184,7 @@ export default function BookmarkGrid({ selectedGroupId }: BookmarkGridProps) {
                 style={{ 
                   color: "var(--text-main)", 
                   textDecoration: "none", 
-                  fontSize: "0.9rem",
+                  fontSize: "0.95rem",
                   fontWeight: "500",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
@@ -187,12 +196,28 @@ export default function BookmarkGrid({ selectedGroupId }: BookmarkGridProps) {
               <span style={{ color: "var(--text-muted)", fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {bookmark.memo || bookmark.summary || "---"}
               </span>
-              <div style={{ textAlign: "right" }}>
+              <div style={{ textAlign: "right", display: "flex", justifyContent: "flex-end" }}>
                 <button 
                   onClick={() => handleDelete(bookmark.id)}
-                  style={{ background: "transparent", border: "none", cursor: "pointer", opacity: 0.5 }}
+                  style={{ 
+                    background: "transparent", 
+                    border: "none", 
+                    color: "rgba(255,255,255,0.3)",
+                    padding: "6px",
+                    borderRadius: "4px",
+                    transition: "all 0.2s"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "#ff6b6b";
+                    e.currentTarget.style.background = "rgba(255, 107, 107, 0.1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "rgba(255,255,255,0.3)";
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                  title="削除"
                 >
-                  🗑
+                  <Trash2 size={16} />
                 </button>
               </div>
             </div>
@@ -202,12 +227,12 @@ export default function BookmarkGrid({ selectedGroupId }: BookmarkGridProps) {
       <style>{`
         .loading-spinner {
           display: inline-block;
-          width: 32px; height: 32px;
-          border: 3px solid rgba(251,191,36,0.3);
+          width: 40px; height: 40px;
+          border: 3px solid rgba(212, 175, 55, 0.2);
           border-top-color: var(--accent-color);
           border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-          margin-bottom: 12px;
+          animation: spin 1s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;
+          margin-bottom: 16px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
         .list-item-hover:hover {

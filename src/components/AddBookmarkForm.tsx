@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Plus, BookOpen, Loader2 } from "lucide-react";
 
 interface AddBookmarkFormProps {
   selectedGroupId: number | null;
@@ -44,8 +45,17 @@ export default function AddBookmarkForm({ selectedGroupId, onAdded }: AddBookmar
       flexDirection: "column",
       gap: "12px",
     }}>
-      <label style={{ fontSize: "0.85rem", color: "var(--text-muted)", letterSpacing: "1px" }}>
-        📖 新しい蔵書を追加
+      <label style={{ 
+        fontSize: "0.9rem", 
+        color: "var(--accent-color)", 
+        letterSpacing: "2px",
+        fontFamily: "Playfair Display, serif",
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        fontWeight: "600"
+      }}>
+        <BookOpen size={16} /> 新しい蔵書を追加
       </label>
       <div style={{ display: "flex", gap: "12px" }}>
         <input
@@ -57,55 +67,71 @@ export default function AddBookmarkForm({ selectedGroupId, onAdded }: AddBookmar
           style={{
             flex: 1,
             padding: "12px 18px",
-            background: "rgba(255,255,255,0.07)",
-            border: "1px solid var(--border-color)",
+            background: "rgba(0,0,0,0.4)",
+            border: "1px solid rgba(212, 175, 55, 0.3)",
             borderRadius: "12px",
             color: "#f8fafc",
             fontSize: "0.95rem",
             fontFamily: "inherit",
             outline: "none",
-            transition: "border-color 0.2s ease",
+            transition: "all 0.3s ease",
+            boxShadow: "inset 0 2px 4px rgba(0,0,0,0.5)"
           }}
-          onFocus={(e) => (e.target.style.borderColor = "#fbbf24")}
-          onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+          onFocus={(e) => {
+            e.target.style.borderColor = "var(--accent-color)";
+            e.target.style.boxShadow = "inset 0 2px 4px rgba(0,0,0,0.5), 0 0 10px rgba(212, 175, 55, 0.2)";
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = "rgba(212, 175, 55, 0.3)";
+            e.target.style.boxShadow = "inset 0 2px 4px rgba(0,0,0,0.5)";
+          }}
         />
         <button
           type="submit"
           disabled={loading}
           style={{
-            padding: "12px 28px",
-            background: loading ? "#78716c" : "linear-gradient(135deg, #fbbf24, #f59e0b)",
-            border: "none",
+            padding: "12px 24px",
+            background: loading ? "rgba(212, 175, 55, 0.5)" : "linear-gradient(135deg, #d4af37, #b5952f)",
+            border: "1px solid rgba(255,255,255,0.2)",
             borderRadius: "12px",
-            color: "#1a1a1a",
+            color: "#0b1120",
             fontWeight: "700",
             fontSize: "0.95rem",
             cursor: loading ? "not-allowed" : "pointer",
             fontFamily: "inherit",
             transition: "all 0.2s ease",
-            minWidth: "100px",
+            minWidth: "120px",
             position: "relative",
             overflow: "hidden",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            boxShadow: "0 4px 12px rgba(212, 175, 55, 0.3)"
           }}
+          onMouseEnter={(e) => !loading && (e.currentTarget.style.transform = "translateY(-2px)")}
+          onMouseLeave={(e) => !loading && (e.currentTarget.style.transform = "translateY(0)")}
         >
           {loading ? (
-            <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{
-                display: "inline-block",
-                width: "14px",
-                height: "14px",
-                border: "2px solid #1a1a1a",
-                borderTopColor: "transparent",
-                borderRadius: "50%",
-                animation: "spin 0.8s linear infinite",
-              }} />
+            <>
+              <Loader2 size={16} className="spin-animation" />
               取得中...
-            </span>
-          ) : "追加する"}
+            </>
+          ) : (
+            <>
+              <Plus size={18} strokeWidth={2.5} />
+              追加する
+            </>
+          )}
         </button>
       </div>
-      {error && <p style={{ color: "#f87171", fontSize: "0.85rem" }}>{error}</p>}
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      {error && <p style={{ color: "#ff6b6b", fontSize: "0.85rem", marginTop: "4px" }}>{error}</p>}
+      <style>{`
+        .spin-animation {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
     </form>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { Trash2, FileText, Loader2 } from "lucide-react";
 
 interface Bookmark {
   id: number;
@@ -35,7 +36,7 @@ export default function BookmarkCard({ bookmark, onDelete }: {
       setSaving(false);
     }, 1000);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [memo]);
+  }, [memo, bookmark.id, bookmark.memo]);
 
   const domain = (() => {
     try { return new URL(bookmark.url).hostname; } catch { return bookmark.url; }
@@ -46,22 +47,22 @@ export default function BookmarkCard({ bookmark, onDelete }: {
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      transition: "transform 0.25s ease, box-shadow 0.25s ease",
-      cursor: "default",
+      transition: "all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)",
+      height: "100%",
     }}
     onMouseEnter={(e) => {
       (e.currentTarget as HTMLDivElement).style.transform = "translateY(-6px)";
-      (e.currentTarget as HTMLDivElement).style.boxShadow = "0 20px 40px rgba(0,0,0,0.5)";
+      (e.currentTarget as HTMLDivElement).style.boxShadow = "0 16px 40px -4px rgba(0,0,0,0.6), 0 0 2px 1px rgba(255, 255, 255, 0.1) inset";
     }}
     onMouseLeave={(e) => {
       (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
-      (e.currentTarget as HTMLDivElement).style.boxShadow = "0 8px 32px 0 rgba(0,0,0,0.37)";
+      (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 24px -1px rgba(0, 0, 0, 0.4), 0 0 1px 1px rgba(255, 255, 255, 0.03) inset";
     }}
     >
       {/* サムネイル */}
       <div style={{
-        height: "160px",
-        background: "linear-gradient(135deg, #1e3a5f, #2d1b69)",
+        height: "180px",
+        background: "linear-gradient(135deg, #17223b, #0b1120)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -69,55 +70,70 @@ export default function BookmarkCard({ bookmark, onDelete }: {
         position: "relative",
       }}>
         {bookmark.image_url && !imgError ? (
-          <img
-            src={bookmark.image_url}
-            alt={bookmark.title || ""}
-            onError={() => setImgError(true)}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
+          <>
+            <img
+              src={bookmark.image_url}
+              alt={bookmark.title || ""}
+              onError={() => setImgError(true)}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+            {/* ダークグラデーションオーバーレイで上の文字を見やすく */}
+            <div style={{
+              position: "absolute",
+              top: 0, left: 0, right: 0, bottom: 0,
+              background: "linear-gradient(to top, rgba(11,17,32,0.9) 0%, rgba(11,17,32,0.2) 50%, rgba(11,17,32,0) 100%)",
+              pointerEvents: "none"
+            }} />
+          </>
         ) : (
-          <span style={{ fontSize: "2.5rem", opacity: 0.5 }}>📄</span>
+          <FileText size={48} strokeWidth={1} style={{ opacity: 0.3, color: "var(--accent-color)" }} />
         )}
+        
         {/* ドメイン名バッジ */}
         <span style={{
           position: "absolute",
-          bottom: "8px",
-          left: "8px",
+          bottom: "12px",
+          left: "12px",
           background: "rgba(0,0,0,0.6)",
-          color: "#94a3b8",
-          fontSize: "0.7rem",
-          padding: "3px 8px",
+          color: "rgba(255,255,255,0.8)",
+          fontSize: "0.75rem",
+          padding: "4px 10px",
           borderRadius: "6px",
-          backdropFilter: "blur(4px)",
+          backdropFilter: "blur(8px)",
+          border: "1px solid rgba(255,255,255,0.1)"
         }}>{domain}</span>
       </div>
 
       {/* コンテンツ */}
-      <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "10px", flex: 1 }}>
+      <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px", flex: 1 }}>
         <a
           href={bookmark.url}
           target="_blank"
           rel="noopener noreferrer"
           style={{
-            fontSize: "1rem",
+            fontSize: "1.05rem",
             fontWeight: "600",
-            color: "#f8fafc",
+            color: "#f1f5f9",
             textDecoration: "none",
-            lineHeight: "1.4",
+            lineHeight: "1.5",
             display: "-webkit-box",
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",
             overflow: "hidden",
+            fontFamily: "Playfair Display, serif",
+            letterSpacing: "0.5px"
           }}
+          onMouseEnter={(e) => e.currentTarget.style.color = "var(--accent-color)"}
+          onMouseLeave={(e) => e.currentTarget.style.color = "#f1f5f9"}
         >
           {bookmark.title || bookmark.url}
         </a>
 
         {bookmark.summary && (
           <p style={{
-            fontSize: "0.8rem",
-            color: "#94a3b8",
-            lineHeight: "1.5",
+            fontSize: "0.85rem",
+            color: "var(--text-muted)",
+            lineHeight: "1.6",
             display: "-webkit-box",
             WebkitLineClamp: 3,
             WebkitBoxOrient: "vertical",
@@ -126,42 +142,50 @@ export default function BookmarkCard({ bookmark, onDelete }: {
         )}
 
         {/* メモエリア */}
-        <div style={{ position: "relative" }}>
+        <div style={{ position: "relative", marginTop: "auto", paddingTop: "10px" }}>
           <textarea
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
-            placeholder="✏️ メモを追加..."
-            rows={3}
+            placeholder="メモを追加..."
+            rows={2}
             style={{
               width: "100%",
-              padding: "10px 12px",
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: "10px",
-              color: "#f8fafc",
-              fontSize: "0.82rem",
+              padding: "10px 14px",
+              background: "rgba(0,0,0,0.3)",
+              border: "1px solid rgba(255,255,255,0.05)",
+              borderRadius: "8px",
+              color: "#f1f5f9",
+              fontSize: "0.85rem",
               fontFamily: "inherit",
               resize: "none",
               outline: "none",
-              transition: "border-color 0.2s",
+              transition: "all 0.2s ease",
             }}
-            onFocus={(e) => (e.target.style.borderColor = "rgba(251,191,36,0.4)")}
-            onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.08)")}
+            onFocus={(e) => {
+              e.target.style.borderColor = "var(--accent-color)";
+              e.target.style.background = "rgba(0,0,0,0.5)";
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = "rgba(255,255,255,0.05)";
+              e.target.style.background = "rgba(0,0,0,0.3)";
+            }}
           />
           {saving && (
             <span style={{
               position: "absolute",
-              bottom: "10px",
-              right: "10px",
-              fontSize: "0.7rem",
-              color: "#fbbf24",
-            }}>保存中...</span>
+              bottom: "12px",
+              right: "12px",
+              color: "var(--accent-color)",
+              animation: "pulse 1.5s infinite"
+            }}>
+              <Loader2 size={14} className="spin-animation" />
+            </span>
           )}
         </div>
 
         {/* フッター */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
-          <span style={{ fontSize: "0.7rem", color: "#475569" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "4px" }}>
+          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "Playfair Display, serif" }}>
             {new Date(bookmark.created_at).toLocaleDateString("ja-JP")}
           </span>
           <button
@@ -169,19 +193,38 @@ export default function BookmarkCard({ bookmark, onDelete }: {
             style={{
               background: "transparent",
               border: "none",
-              color: "#475569",
+              color: "rgba(255,255,255,0.3)",
               cursor: "pointer",
-              fontSize: "0.75rem",
-              transition: "color 0.2s",
-              fontFamily: "inherit",
+              padding: "6px",
+              borderRadius: "4px",
+              transition: "all 0.2s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
             }}
-            onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#f87171")}
-            onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#475569")}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "#ff6b6b";
+              e.currentTarget.style.background = "rgba(255, 107, 107, 0.1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "rgba(255,255,255,0.3)";
+              e.currentTarget.style.background = "transparent";
+            }}
+            title="削除"
           >
-            🗑 削除
+            <Trash2 size={16} />
           </button>
         </div>
       </div>
+      <style>{`
+        .spin-animation {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
     </div>
   );
 }
