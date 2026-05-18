@@ -49,7 +49,7 @@ export async function GET(request: Request) {
     let result;
     if (groupId) {
       result = await db.query(
-        "SELECT * FROM bookmarks WHERE group_id = ? ORDER BY created_at DESC",
+        "SELECT * FROM bookmarks WHERE group_id = CAST(? AS INTEGER) ORDER BY created_at DESC",
         [Number(groupId)]
       );
     } else {
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
     const bookmarks = Array.isArray(result) ? result : (result as any).rows;
     return NextResponse.json(bookmarks);
   } catch (err: any) {
-    return NextResponse.json({ error: "GET Error", details: err.message, stack: err.stack, env: Object.keys(process.env).filter(k => k.includes('URL') || k.includes('POSTGRES') || k.includes('DATABASE')) }, { status: 500 });
+    return NextResponse.json({ error: "GET Error", details: err.message, stack: err.stack }, { status: 500 });
   }
 }
 
@@ -77,8 +77,8 @@ export async function POST(request: Request) {
 
     await db.execute(`
       INSERT INTO bookmarks (group_id, url, title, image_url, summary, memo)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, [groupId || null, url, title, imageUrl, summary, ""]);
+      VALUES (CAST(? AS INTEGER), ?, ?, ?, ?, ?)
+    `, [groupId ? Number(groupId) : null, url, title, imageUrl, summary, ""]);
 
     // 最新のデータを取得して返す
     const bookmark = await db.get("SELECT * FROM bookmarks WHERE url = ? ORDER BY created_at DESC LIMIT 1", [url]);
