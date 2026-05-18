@@ -8,6 +8,9 @@ export async function PUT(
   try {
     await initDB();
     const { id } = await params;
+    const numId = Number(id);
+    if (isNaN(numId)) throw new Error("Invalid id");
+    
     const body = await request.json();
     const { name } = body;
 
@@ -16,8 +19,8 @@ export async function PUT(
     }
 
     try {
-      await db.execute("UPDATE groups SET name = ? WHERE id = CAST(? AS INTEGER)", [name.trim(), Number(id)]);
-      const group = await db.get("SELECT * FROM groups WHERE id = CAST(? AS INTEGER)", [Number(id)]);
+      await db.execute(`UPDATE groups SET name = ? WHERE id = ${numId}`, [name.trim()]);
+      const group = await db.get(`SELECT * FROM groups WHERE id = ${numId}`);
       return NextResponse.json(group);
     } catch (err: any) {
       console.error(err);
@@ -35,7 +38,10 @@ export async function DELETE(
   try {
     await initDB();
     const { id } = await params;
-    await db.execute("DELETE FROM groups WHERE id = CAST(? AS INTEGER)", [Number(id)]);
+    const numId = Number(id);
+    if (isNaN(numId)) throw new Error("Invalid id");
+    
+    await db.execute(`DELETE FROM groups WHERE id = ${numId}`);
     return NextResponse.json({ success: true });
   } catch (err: any) {
     return NextResponse.json({ error: "DELETE Error", details: err.message, stack: err.stack }, { status: 500 });

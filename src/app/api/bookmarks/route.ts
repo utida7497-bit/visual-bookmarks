@@ -48,10 +48,10 @@ export async function GET(request: Request) {
 
     let result;
     if (groupId) {
-      result = await db.query(
-        "SELECT * FROM bookmarks WHERE group_id = CAST(? AS INTEGER) ORDER BY created_at DESC",
-        [Number(groupId)]
-      );
+      // 数値はパラメータ（$1）を使わず直接埋め込む（NumberでキャストするためSQLインジェクションは安全）
+      const numId = Number(groupId);
+      if (isNaN(numId)) throw new Error("Invalid groupId");
+      result = await db.query(`SELECT * FROM bookmarks WHERE group_id = ${numId} ORDER BY created_at DESC`);
     } else {
       result = await db.query("SELECT * FROM bookmarks ORDER BY created_at DESC");
     }
@@ -74,11 +74,13 @@ export async function POST(request: Request) {
     }
 
     const { title, imageUrl, summary } = await fetchMetadata(url);
+    const numId = groupId ? Number(groupId) : 'NULL';
 
+    // 整数（group_id）は直接埋め込み、文字列のみプレースホルダー（?）を使用する
     await db.execute(`
       INSERT INTO bookmarks (group_id, url, title, image_url, summary, memo)
-      VALUES (CAST(? AS INTEGER), ?, ?, ?, ?, ?)
-    `, [groupId ? Number(groupId) : null, url, title, imageUrl, summary, ""]);
+      VALUES (${numId}, ?, ?, ?, ?, ?)
+    `, [url, title, imageUrl, summary, ""]);
 
     // 最新のデータを取得して返す
     const bookmark = await db.get("SELECT * FROM bookmarks WHERE url = ? ORDER BY created_at DESC LIMIT 1", [url]);
