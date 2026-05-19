@@ -5,10 +5,20 @@ export async function GET() {
   try {
     await initDB();
     if (isCloud) {
-      const { rows } = await sql`SELECT * FROM groups ORDER BY sort_order ASC, id ASC`;
+      const { rows } = await sql`
+        SELECT g.*, 
+               CAST((SELECT COUNT(*) FROM bookmarks b WHERE b.group_id = g.id OR (g.name = '未分類' AND b.group_id IS NULL)) AS INTEGER) AS bookmark_count
+        FROM groups g
+        ORDER BY g.sort_order ASC, g.id ASC
+      `;
       return NextResponse.json(rows);
     } else {
-      const groups = await db.query("SELECT * FROM groups ORDER BY sort_order ASC, id ASC");
+      const groups = await db.query(`
+        SELECT g.*, 
+               (SELECT COUNT(*) FROM bookmarks b WHERE b.group_id = g.id OR (g.name = '未分類' AND b.group_id IS NULL)) AS bookmark_count
+        FROM groups g
+        ORDER BY g.sort_order ASC, g.id ASC
+      `);
       return NextResponse.json(groups);
     }
   } catch (err: any) {

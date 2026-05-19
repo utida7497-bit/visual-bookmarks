@@ -2,16 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { Plus, Edit2, Trash2, ChevronLeft, ChevronRight, Library, Star } from "lucide-react";
+import MasterCatalogModal from "./MasterCatalogModal";
 
 interface Group {
   id: number;
   name: string;
+  bookmark_count?: number;
 }
 
 interface SidebarProps {
   onSelectGroup: (id: number | string | null) => void;
   selectedGroupId: number | string | null;
   onGroupsChange?: () => void;
+  refresh?: number;
 }
 
 // 背表紙のカラーパレット（アンティークな本の装丁風）
@@ -23,8 +26,10 @@ const spineColors = [
   "linear-gradient(90deg, #2a2236 0%, #3d314e 50%, #2a2236 100%)", // ディープパープル
 ];
 
-export default function Sidebar({ onSelectGroup, selectedGroupId, onGroupsChange }: SidebarProps) {
+export default function Sidebar({ onSelectGroup, selectedGroupId, onGroupsChange, refresh }: SidebarProps) {
   const [groups, setGroups] = useState<Group[]>([]);
+  const [favoritesCount, setFavoritesCount] = useState(0);
+  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
@@ -101,6 +106,13 @@ export default function Sidebar({ onSelectGroup, selectedGroupId, onGroupsChange
       } else {
         setGroups(Array.isArray(data) ? data : []);
       }
+
+      // Also fetch favorites count
+      const favRes = await fetch("/api/bookmarks?groupId=favorites");
+      if (favRes.ok) {
+        const favData = await favRes.json();
+        setFavoritesCount(Array.isArray(favData) ? favData.length : 0);
+      }
     } catch (err: any) {
       setSidebarError({ error: "Fetch Exception", details: err.message });
     }
@@ -108,7 +120,7 @@ export default function Sidebar({ onSelectGroup, selectedGroupId, onGroupsChange
 
   useEffect(() => {
     fetchGroups();
-  }, []);
+  }, [refresh]);
 
   useEffect(() => {
     if (groups.length > 0 && selectedGroupId === null) {
@@ -255,24 +267,40 @@ export default function Sidebar({ onSelectGroup, selectedGroupId, onGroupsChange
               style={{
                 padding: "12px 14px 12px 30px",
                 display: "flex",
+                justifyContent: "space-between",
                 alignItems: "center",
-                gap: "10px",
                 position: "relative",
                 zIndex: 2,
                 minHeight: "44px"
               }}
               onClick={() => onSelectGroup("favorites")}
             >
-              <Star size={16} fill={selectedGroupId === "favorites" ? "var(--accent-color)" : "none"} stroke={selectedGroupId === "favorites" ? "var(--accent-color)" : "rgba(255,255,255,0.8)"} style={{ filter: "drop-shadow(0 0 2px rgba(0,0,0,0.5))" }} />
-              <span style={{ 
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <Star size={16} fill={selectedGroupId === "favorites" ? "var(--accent-color)" : "none"} stroke={selectedGroupId === "favorites" ? "var(--accent-color)" : "rgba(255,255,255,0.8)"} style={{ filter: "drop-shadow(0 0 2px rgba(0,0,0,0.5))" }} />
+                <span style={{ 
+                  fontFamily: "Playfair Display, serif",
+                  fontWeight: selectedGroupId === "favorites" ? "700" : "500",
+                  color: "#fff",
+                  letterSpacing: "1px",
+                  fontSize: "0.95rem",
+                  textShadow: "1px 1px 2px rgba(0,0,0,0.8)"
+                }}>
+                  お気に入り
+                </span>
+              </div>
+              <span style={{
+                fontSize: "0.72rem",
+                background: "rgba(234, 179, 8, 0.25)",
+                border: "1px solid rgba(234, 179, 8, 0.4)",
+                padding: "2px 8px",
+                borderRadius: "20px",
+                color: "var(--accent-color)",
                 fontFamily: "Playfair Display, serif",
-                fontWeight: selectedGroupId === "favorites" ? "700" : "500",
-                color: "#fff",
-                letterSpacing: "1px",
-                fontSize: "0.95rem",
-                textShadow: "1px 1px 2px rgba(0,0,0,0.8)"
+                fontWeight: "700",
+                textShadow: "none",
+                backdropFilter: "blur(4px)"
               }}>
-                お気に入り
+                {favoritesCount}
               </span>
             </div>
           </li>
@@ -347,53 +375,129 @@ export default function Sidebar({ onSelectGroup, selectedGroupId, onGroupsChange
                     {group.name}
                   </span>
                   
-                  {/* ホバー時に表示されるアクションボタン */}
-                  <div className="group-actions" style={{ display: "flex", gap: "4px" }}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditGroupName(group.name);
-                        setEditingGroupId(group.id);
-                      }}
-                      style={{ background: "rgba(0,0,0,0.3)", borderRadius: "4px", border: "1px solid rgba(255,255,255,0.1)", padding: "4px", color: "rgba(255,255,255,0.7)" }}
-                      title="名前を変更"
-                      onMouseEnter={(e) => e.currentTarget.style.color = "#fff"}
-                      onMouseLeave={(e) => e.currentTarget.style.color = "rgba(255,255,255,0.7)"}
-                    >
-                      <Edit2 size={14} />
-                    </button>
-                    {group.name !== '未分類' && (
+                  {/* アクションボタンとバッジの親コンテナ */}
+                  <div style={{ position: "relative", height: "24px", display: "flex", alignItems: "center", minWidth: "60px", justifyContent: "flex-end" }}>
+                    {/* 図書カウントバッジ */}
+                    <span className="group-count" style={{
+                      fontSize: "0.72rem",
+                      background: "rgba(255, 255, 255, 0.08)",
+                      border: "1px solid rgba(255, 255, 255, 0.12)",
+                      padding: "2px 8px",
+                      borderRadius: "20px",
+                      color: "rgba(255, 255, 255, 0.7)",
+                      fontFamily: "Playfair Display, serif",
+                      fontWeight: "600",
+                      backdropFilter: "blur(4px)",
+                      position: "absolute",
+                      right: 0
+                    }}>
+                      {group.bookmark_count || 0}
+                    </span>
+
+                    {/* ホバー時に表示されるアクションボタン */}
+                    <div className="group-actions" style={{ display: "flex", gap: "4px", position: "absolute", right: 0 }}>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteGroup(group.id);
+                          setEditGroupName(group.name);
+                          setEditingGroupId(group.id);
                         }}
                         style={{ background: "rgba(0,0,0,0.3)", borderRadius: "4px", border: "1px solid rgba(255,255,255,0.1)", padding: "4px", color: "rgba(255,255,255,0.7)" }}
-                        title="削除"
-                        onMouseEnter={(e) => e.currentTarget.style.color = "#ff6b6b"}
+                        title="名前を変更"
+                        onMouseEnter={(e) => e.currentTarget.style.color = "#fff"}
                         onMouseLeave={(e) => e.currentTarget.style.color = "rgba(255,255,255,0.7)"}
                       >
-                        <Trash2 size={14} />
+                        <Edit2 size={14} />
                       </button>
-                    )}
+                      {group.name !== '未分類' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteGroup(group.id);
+                          }}
+                          style={{ background: "rgba(0,0,0,0.3)", borderRadius: "4px", border: "1px solid rgba(255,255,255,0.1)", padding: "4px", color: "rgba(255,255,255,0.7)" }}
+                          title="削除"
+                          onMouseEnter={(e) => e.currentTarget.style.color = "#ff6b6b"}
+                          onMouseLeave={(e) => e.currentTarget.style.color = "rgba(255,255,255,0.7)"}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
             </li>
           ))}
         </ul>
+
+        {/* 図書総目録 (Master Catalog Index) Button */}
+        {!isCollapsed && (
+          <div style={{ padding: "15px 20px", borderTop: "1px solid rgba(255,255,255,0.06)", minWidth: "280px" }}>
+            <button
+              onClick={() => setIsCatalogOpen(true)}
+              style={{
+                width: "100%",
+                padding: "10px 14px",
+                background: "linear-gradient(135deg, rgba(234, 179, 8, 0.15) 0%, rgba(166, 124, 30, 0.05) 100%)",
+                border: "1px solid rgba(234, 179, 8, 0.3)",
+                borderRadius: "8px",
+                color: "var(--accent-color)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                fontFamily: "Playfair Display, serif",
+                fontSize: "0.85rem",
+                letterSpacing: "2px",
+                cursor: "pointer",
+                transition: "all 0.3s ease"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "linear-gradient(135deg, rgba(234, 179, 8, 0.25) 0%, rgba(166, 124, 30, 0.1) 100%)";
+                e.currentTarget.style.boxShadow = "0 0 10px rgba(234, 179, 8, 0.2)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "linear-gradient(135deg, rgba(234, 179, 8, 0.15) 0%, rgba(166, 124, 30, 0.05) 100%)";
+                e.currentTarget.style.boxShadow = "none";
+              }}
+            >
+              <Library size={15} style={{ color: "var(--accent-color)" }} />
+              図書総目録を開く
+            </button>
+          </div>
+        )}
+
         <style>{`
           .group-actions {
             opacity: 0;
             transform: translateX(10px);
-            transition: all 0.2s ease;
+            transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+            pointer-events: none;
           }
           .book-spine:hover .group-actions {
             opacity: 1;
             transform: translateX(0);
+            pointer-events: auto;
+          }
+          .group-count {
+            opacity: 1;
+            transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+          }
+          .book-spine:hover .group-count {
+            opacity: 0;
+            transform: translateX(-10px);
+            pointer-events: none;
           }
         `}</style>
       </div>
+
+      <MasterCatalogModal
+        isOpen={isCatalogOpen}
+        onClose={() => setIsCatalogOpen(false)}
+        groups={groups}
+        onSelectGroup={onSelectGroup}
+      />
 
       {/* 枠外の折りたたみトグルボタン */}
       <button

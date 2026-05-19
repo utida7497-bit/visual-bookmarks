@@ -18,11 +18,12 @@ interface Bookmark {
 
 interface BookmarkGridProps {
   selectedGroupId: number | string | null;
+  onBookmarksChange?: () => void;
 }
 
 type ViewMode = "grid" | "list";
 
-export default function BookmarkGrid({ selectedGroupId }: BookmarkGridProps) {
+export default function BookmarkGrid({ selectedGroupId, onBookmarksChange }: BookmarkGridProps) {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -57,6 +58,12 @@ export default function BookmarkGrid({ selectedGroupId }: BookmarkGridProps) {
     if (!confirm("この蔵書を削除しますか？")) return;
     await fetch(`/api/bookmarks/${id}`, { method: "DELETE" });
     setBookmarks((prev) => prev.filter((b) => b.id !== id));
+    if (onBookmarksChange) onBookmarksChange();
+  };
+
+  const handleAdded = () => {
+    fetchBookmarks();
+    if (onBookmarksChange) onBookmarksChange();
   };
 
   // 検索条件によるフィルタリング
@@ -94,7 +101,7 @@ export default function BookmarkGrid({ selectedGroupId }: BookmarkGridProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        <AddBookmarkForm selectedGroupId={selectedGroupId} onAdded={fetchBookmarks} />
+        <AddBookmarkForm selectedGroupId={selectedGroupId} onAdded={handleAdded} />
         
         {/* コントロールパネル: 検索、並び替え、表示切替 */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
@@ -252,7 +259,7 @@ export default function BookmarkGrid({ selectedGroupId }: BookmarkGridProps) {
           gap: "24px",
         }}>
           {sortedBookmarks.map((bookmark) => (
-            <BookmarkCard key={bookmark.id} bookmark={bookmark} onDelete={handleDelete} />
+            <BookmarkCard key={bookmark.id} bookmark={bookmark} onDelete={handleDelete} onToggleFavorite={onBookmarksChange} />
           ))}
         </div>
       ) : (

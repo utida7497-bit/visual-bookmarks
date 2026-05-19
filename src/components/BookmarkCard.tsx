@@ -14,9 +14,10 @@ interface Bookmark {
   created_at: string;
 }
 
-export default function BookmarkCard({ bookmark, onDelete }: {
+export default function BookmarkCard({ bookmark, onDelete, onToggleFavorite }: {
   bookmark: Bookmark;
   onDelete: (id: number) => void;
+  onToggleFavorite?: () => void;
 }) {
   const [memo, setMemo] = useState(bookmark.memo || "");
   const [saving, setSaving] = useState(false);
@@ -49,7 +50,9 @@ export default function BookmarkCard({ bookmark, onDelete }: {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isFavorite: nextVal }),
       });
-      if (!res.ok) {
+      if (res.ok) {
+        if (onToggleFavorite) onToggleFavorite();
+      } else {
         setIsFavorite(!nextVal);
       }
     } catch {

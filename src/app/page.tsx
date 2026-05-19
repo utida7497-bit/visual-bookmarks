@@ -15,6 +15,7 @@ export default function Home() {
         onSelectGroup={setSelectedGroupId}
         selectedGroupId={selectedGroupId}
         onGroupsChange={() => setRefresh((r) => r + 1)}
+        refresh={refresh}
       />
 
       {/* メインコンテンツ */}
@@ -39,7 +40,11 @@ export default function Home() {
         </header>
 
         {/* ブックマーク一覧（内部にフォームを含む） */}
-        <BookmarkGrid key={`${selectedGroupId}-${refresh}`} selectedGroupId={selectedGroupId} />
+        <BookmarkGrid 
+          key={`${selectedGroupId}-${refresh}`} 
+          selectedGroupId={selectedGroupId} 
+          onBookmarksChange={() => setRefresh((r) => r + 1)}
+        />
       </div>
     </div>
   );
