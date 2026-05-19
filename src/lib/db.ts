@@ -44,6 +44,7 @@ export async function initDB() {
     CREATE TABLE IF NOT EXISTS groups (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
+      sort_order INTEGER DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
@@ -65,8 +66,9 @@ export async function initDB() {
     // Vercel Postgres Native (sql tagged template)
     await vercelSql.query(createGroupsTable);
     await vercelSql.query(createBookmarksTable);
-    // Migration: Add is_favorite column if it doesn't exist
+    // Migration: Add columns if they don't exist
     await vercelSql.query("ALTER TABLE bookmarks ADD COLUMN IF NOT EXISTS is_favorite BOOLEAN DEFAULT FALSE");
+    await vercelSql.query("ALTER TABLE groups ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0");
     await vercelSql.query("INSERT INTO groups (name) VALUES ('未分類') ON CONFLICT (name) DO NOTHING");
   } else {
     const sdb = await getSQLite();
@@ -74,6 +76,7 @@ export async function initDB() {
       CREATE TABLE IF NOT EXISTS groups (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL UNIQUE,
+        sort_order INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
       CREATE TABLE IF NOT EXISTS bookmarks (
@@ -88,12 +91,13 @@ export async function initDB() {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    // Migration: Add is_favorite column if it doesn't exist in SQLite
+    // Migration: Add columns if they don't exist in SQLite
     try {
       sdb.exec("ALTER TABLE bookmarks ADD COLUMN is_favorite INTEGER DEFAULT 0");
-    } catch (e) {
-      // Ignored if column already exists
-    }
+    } catch (e) {}
+    try {
+      sdb.exec("ALTER TABLE groups ADD COLUMN sort_order INTEGER DEFAULT 0");
+    } catch (e) {}
     sdb.prepare("INSERT OR IGNORE INTO groups (name) VALUES (?)").run('未分類');
   }
 }

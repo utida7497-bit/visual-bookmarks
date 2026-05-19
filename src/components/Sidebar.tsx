@@ -34,6 +34,63 @@ export default function Sidebar({ onSelectGroup, selectedGroupId, onGroupsChange
   // サイドバーの開閉状態
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  // ドラッグ＆ドロップ状態
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.setData("text/plain", index.toString());
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null) return;
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const updated = [...groups];
+    const [draggedItem] = updated.splice(draggedIndex, 1);
+    updated.splice(index, 0, draggedItem);
+
+    setGroups(updated);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+
+    // データベースに並び順を保存
+    try {
+      const orders = updated.map((group, idx) => ({
+        id: group.id,
+        sortOrder: idx,
+      }));
+
+      await fetch("/api/groups/reorder", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orders }),
+      });
+      if (onGroupsChange) onGroupsChange();
+    } catch (err) {
+      console.error("Failed to persist group order:", err);
+    }
+  };
+
   const fetchGroups = async () => {
     try {
       const res = await fetch("/api/groups");
@@ -224,7 +281,26 @@ export default function Sidebar({ onSelectGroup, selectedGroupId, onGroupsChange
           <div style={{ height: "1px", background: "rgba(255,255,255,0.08)", margin: "12px 0" }} />
 
           {groups.map((group, index) => (
-            <li key={group.id} className={`book-spine ${selectedGroupId === group.id ? "selected" : ""}`} style={{ background: spineColors[index % spineColors.length] }}>
+            <li 
+              key={group.id} 
+              className={`book-spine ${selectedGroupId === group.id ? "selected" : ""}`} 
+              draggable={editingGroupId === null}
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragEnd={handleDragEnd}
+              onDrop={(e) => handleDrop(e, index)}
+              style={{ 
+                background: spineColors[index % spineColors.length],
+                opacity: draggedIndex === index ? 0.4 : 1,
+                transform: dragOverIndex === index ? "translateY(-2px) scale(1.02)" : undefined,
+                boxShadow: dragOverIndex === index 
+                  ? "0 0 15px rgba(234, 179, 8, 0.5), inset 0 0 1px 1px rgba(255,255,255,0.15)" 
+                  : undefined,
+                border: dragOverIndex === index ? "1px dashed var(--accent-color)" : undefined,
+                transition: "all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)",
+                cursor: editingGroupId === null ? "grab" : "default"
+              }}
+            >
               {editingGroupId === group.id ? (
                 <form 
                   onSubmit={(e) => handleEditGroup(e, group.id)}

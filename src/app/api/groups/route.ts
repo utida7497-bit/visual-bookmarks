@@ -5,10 +5,10 @@ export async function GET() {
   try {
     await initDB();
     if (isCloud) {
-      const { rows } = await sql`SELECT * FROM groups ORDER BY created_at ASC`;
+      const { rows } = await sql`SELECT * FROM groups ORDER BY sort_order ASC, id ASC`;
       return NextResponse.json(rows);
     } else {
-      const groups = await db.query("SELECT * FROM groups ORDER BY created_at ASC");
+      const groups = await db.query("SELECT * FROM groups ORDER BY sort_order ASC, id ASC");
       return NextResponse.json(groups);
     }
   } catch (err: any) {
